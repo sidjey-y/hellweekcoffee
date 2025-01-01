@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/customers")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:3001", allowCredentials = "true", maxAge = 3600)
 public class CustomerController {
     private final CustomerService customerService;
 
@@ -23,6 +23,11 @@ public class CustomerController {
     @PostMapping("/guest")
     public ResponseEntity<Customer> createGuestCustomer(@RequestParam String firstName) {
         return ResponseEntity.ok(customerService.createGuestCustomer(firstName));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<Customer> registerCustomer(@Valid @RequestBody CustomerRequest request) {
+        return ResponseEntity.ok(customerService.createCustomer(request));
     }
 
     @GetMapping("/{membershipId}")

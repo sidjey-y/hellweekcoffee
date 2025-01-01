@@ -2,6 +2,7 @@ package com.hellweek.coffee.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import java.time.LocalDate;
 import java.util.Set;
 
 @Data
@@ -23,6 +24,14 @@ public class User {
 
     private String lastName;
 
+    @Column(unique = true)
+    private String email;
+
+    private String phone;
+
+    @Column(nullable = false)
+    private LocalDate birthDate;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
@@ -32,6 +41,8 @@ public class User {
     public enum Role {
         ADMIN,
         MANAGER,
-        CASHIER
+        CASHIER,
+        CUSTOMER,
+        PREMIUM_CUSTOMER
     }
 }

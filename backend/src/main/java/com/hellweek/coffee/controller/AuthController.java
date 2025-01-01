@@ -20,6 +20,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.authenticate(request));
     }
 
+    @PostMapping("/register")
+    public ResponseEntity<User> register(@RequestBody UserRequest request) {
+        return ResponseEntity.ok(authService.createUser(request));
+    }
+
     @PostMapping("/users")
     public ResponseEntity<User> createUser(@RequestBody UserRequest request) {
         return ResponseEntity.ok(authService.createUser(request));
