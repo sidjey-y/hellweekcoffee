@@ -1,68 +1,66 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Grid,
-  Button,
-  FormControlLabel,
-  Switch,
   Box,
+  SelectChangeEvent,
+  Button,
   CircularProgress,
 } from '@mui/material';
-import { ItemFormData, ItemType } from '../types/item';
+import { Item, ItemFormData, ItemType, ITEM_TYPES } from '../types/item';
+
+const defaultFormData: ItemFormData = {
+  name: '',
+  type: 'ESPRESSO_DRINK',
+  basePrice: 0,
+  categoryId: 'GENERAL',
+  description: '',
+  sizePrices: {},
+  active: true,
+  availableCustomizations: [],
+};
 
 interface ItemFormProps {
-  initialData?: ItemFormData;
   onSubmit: (data: ItemFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  selectedItem?: Item;
 }
 
-const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSubmit, onCancel, isLoading = false }) => {
-  const [formData, setFormData] = React.useState<ItemFormData>({
-    name: '',
-    description: '',
-    category: '',
-    basePrice: 0,
-    sizePrices: {},
-    type: 'ESPRESSO_DRINK',
-    active: true,
-    availableCustomizations: [],
-    ...initialData,
-  });
+const ItemForm: React.FC<ItemFormProps> = ({ onSubmit, onCancel, isLoading = false, selectedItem }) => {
+  const [formData, setFormData] = useState<ItemFormData>(defaultFormData);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (selectedItem) {
+      setFormData({
+        name: selectedItem.name,
+        type: selectedItem.type,
+        basePrice: selectedItem.basePrice,
+        categoryId: selectedItem.category.id,
+        description: selectedItem.description || '',
+        sizePrices: selectedItem.sizePrices || {},
+        active: selectedItem.active,
+        availableCustomizations: selectedItem.availableCustomizations?.map((customization) => customization.id) || [],
+      });
+    } else {
+      setFormData(defaultFormData);
+    }
+  }, [selectedItem]);
+
+  const handleTextFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev: ItemFormData) => ({
+    setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: name === 'basePrice' ? Number(value) : value,
     }));
   };
 
-  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelectChange = (e: SelectChangeEvent) => {
     const { name, value } = e.target;
-    setFormData((prev: ItemFormData) => ({
-      ...prev,
-      [name]: parseFloat(value) || 0,
-    }));
-  };
-
-  const handleSizeChange = (size: string, value: string) => {
-    setFormData((prev: ItemFormData) => ({
-      ...prev,
-      sizePrices: {
-        ...prev.sizePrices,
-        [size]: parseFloat(value) || 0,
-      },
-    }));
-  };
-
-  const handleSelectChange = (e: any) => {
-    const { name, value } = e.target;
-    setFormData((prev: ItemFormData) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
@@ -73,175 +71,106 @@ const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSubmit, onCancel, is
     onSubmit(formData);
   };
 
-  const isDrinkType = (type: ItemType) => {
+  const isDrinkType = (type: ItemType): boolean => {
     return ['ESPRESSO_DRINK', 'BLENDED_DRINK', 'TEA', 'OTHER_DRINK'].includes(type);
   };
 
-  const isFoodType = (type: ItemType) => {
+  const isFoodType = (type: ItemType): boolean => {
     return ['PASTRY', 'CAKE', 'SANDWICH', 'PASTA', 'OTHER_FOOD'].includes(type);
   };
 
-  const isMerchandiseType = (type: ItemType) => {
+  const isMerchandiseType = (type: ItemType): boolean => {
     return ['TSHIRT', 'BAG', 'MUG', 'OTHER_MERCHANDISE'].includes(type);
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Name"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            required
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Description"
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            multiline
-            rows={3}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth required>
-            <InputLabel>Type</InputLabel>
-            <Select
-              name="type"
-              value={formData.type}
-              onChange={handleSelectChange}
-            >
-              <MenuItem value="ESPRESSO_DRINK">Espresso Drink</MenuItem>
-              <MenuItem value="BLENDED_DRINK">Blended Drink</MenuItem>
-              <MenuItem value="TEA">Tea</MenuItem>
-              <MenuItem value="OTHER_DRINK">Other Drink</MenuItem>
-              <MenuItem value="PASTRY">Pastry</MenuItem>
-              <MenuItem value="CAKE">Cake</MenuItem>
-              <MenuItem value="SANDWICH">Sandwich</MenuItem>
-              <MenuItem value="PASTA">Pasta</MenuItem>
-              <MenuItem value="OTHER_FOOD">Other Food</MenuItem>
-              <MenuItem value="TSHIRT">T-Shirt</MenuItem>
-              <MenuItem value="BAG">Bag</MenuItem>
-              <MenuItem value="MUG">Mug</MenuItem>
-              <MenuItem value="OTHER_MERCHANDISE">Other Merchandise</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Base Price"
-            name="basePrice"
-            type="number"
-            value={formData.basePrice}
-            onChange={handleNumberChange}
-            required
-            inputProps={{ min: 0, step: 0.01 }}
-          />
-        </Grid>
-        {isDrinkType(formData.type) && (
-          <>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Small Size Price"
-                type="number"
-                value={formData.sizePrices?.SMALL || ''}
-                onChange={(e) => handleSizeChange('SMALL', e.target.value)}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Medium Size Price"
-                type="number"
-                value={formData.sizePrices?.MEDIUM || ''}
-                onChange={(e) => handleSizeChange('MEDIUM', e.target.value)}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Large Size Price"
-                type="number"
-                value={formData.sizePrices?.LARGE || ''}
-                onChange={(e) => handleSizeChange('LARGE', e.target.value)}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
-          </>
-        )}
-        <Grid item xs={12}>
-          <FormControl fullWidth required>
-            <InputLabel>Category</InputLabel>
-            <Select
-              name="category"
-              value={formData.category}
-              onChange={handleSelectChange}
-            >
-              {isDrinkType(formData.type) && (
-                <>
-                  <MenuItem value="Espresso Drinks">Espresso Drinks</MenuItem>
-                  <MenuItem value="Blended Drinks">Blended Drinks</MenuItem>
-                  <MenuItem value="Tea">Tea</MenuItem>
-                  <MenuItem value="Others">Others</MenuItem>
-                </>
-              )}
-              {isFoodType(formData.type) && (
-                <>
-                  <MenuItem value="Pastries">Pastries</MenuItem>
-                  <MenuItem value="Cakes">Cakes</MenuItem>
-                  <MenuItem value="Sandwiches">Sandwiches</MenuItem>
-                  <MenuItem value="Pastas">Pastas</MenuItem>
-                  <MenuItem value="Others">Others</MenuItem>
-                </>
-              )}
-              {isMerchandiseType(formData.type) && (
-                <>
-                  <MenuItem value="T-Shirts">T-Shirts</MenuItem>
-                  <MenuItem value="Bags">Bags</MenuItem>
-                  <MenuItem value="Mugs">Mugs</MenuItem>
-                  <MenuItem value="Others">Others</MenuItem>
-                </>
-              )}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={formData.active}
-                onChange={(e) => setFormData(prev => ({ ...prev, active: e.target.checked }))}
-                name="active"
-              />
-            }
-            label="Available"
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button onClick={onCancel} disabled={isLoading}>Cancel</Button>
-            <Button 
-              type="submit" 
-              variant="contained" 
-              color="primary"
-              disabled={isLoading}
-              startIcon={isLoading ? <CircularProgress size={20} /> : null}
-            >
-              {initialData ? 'Update' : 'Create'}
-            </Button>
-          </Box>
-        </Grid>
-      </Grid>
+      <Box sx={{ width: '100%', mt: 2 }}>
+        <TextField
+          fullWidth
+          required
+          label="Name"
+          margin="normal"
+          name="name"
+          value={formData.name}
+          onChange={handleTextFieldChange}
+          error={!formData.name}
+          helperText={!formData.name ? 'Name is required' : ''}
+        />
+        <FormControl fullWidth margin="normal" required error={!formData.type}>
+          <InputLabel>Type</InputLabel>
+          <Select
+            name="type"
+            value={formData.type}
+            onChange={handleSelectChange}
+            label="Type"
+          >
+            {Object.values(ITEM_TYPES).map((type) => (
+              <MenuItem key={type} value={type}>
+                {type.replace(/_/g, ' ')}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl fullWidth margin="normal" required error={!formData.categoryId}>
+          <InputLabel>Category</InputLabel>
+          <Select
+            name="categoryId"
+            value={formData.categoryId}
+            onChange={handleSelectChange}
+            label="Category"
+          >
+            {isDrinkType(formData.type) && (
+              <MenuItem value="DRINKS">Drinks</MenuItem>
+            )}
+            {isFoodType(formData.type) && (
+              <MenuItem value="FOOD">Food</MenuItem>
+            )}
+            {isMerchandiseType(formData.type) && (
+              <MenuItem value="MERCHANDISE">Merchandise</MenuItem>
+            )}
+          </Select>
+        </FormControl>
+        <TextField
+          fullWidth
+          required
+          label="Base Price"
+          margin="normal"
+          name="basePrice"
+          type="number"
+          value={formData.basePrice}
+          onChange={handleTextFieldChange}
+          error={formData.basePrice <= 0}
+          helperText={formData.basePrice <= 0 ? 'Base price must be greater than 0' : ''}
+          InputProps={{
+            inputProps: { min: 0, step: 0.01 }
+          }}
+        />
+        <TextField
+          fullWidth
+          label="Description"
+          margin="normal"
+          name="description"
+          value={formData.description}
+          onChange={handleTextFieldChange}
+          multiline
+          rows={3}
+        />
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>
+          <Button onClick={onCancel} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            disabled={isLoading || !formData.name || !formData.type || formData.basePrice <= 0}
+            startIcon={isLoading ? <CircularProgress size={20} /> : null}
+          >
+            {selectedItem ? 'Update' : 'Create'}
+          </Button>
+        </Box>
+      </Box>
     </form>
   );
 };

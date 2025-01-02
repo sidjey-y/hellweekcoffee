@@ -1,5 +1,6 @@
 package com.hellweek.coffee.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,15 +16,16 @@ import java.util.Set;
 @Table(name = "items")
 public class Item {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 10)
     private String code;
 
     @NotBlank(message = "Item name is required")
     @Column(nullable = false)
     private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Category category;
 
     @NotNull(message = "Base price is required")
@@ -31,19 +33,20 @@ public class Item {
     @Column(name = "base_price", nullable = false)
     private Double basePrice;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "item_size_prices", 
                     joinColumns = @JoinColumn(name = "item_code"))
     @MapKeyColumn(name = "size")
     @Column(name = "price")
     private Map<String, Double> sizePrices = new HashMap<>();
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "item_customizations",
         joinColumns = @JoinColumn(name = "item_code"),
         inverseJoinColumns = @JoinColumn(name = "customization_id")
     )
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Set<Customization> availableCustomizations = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
