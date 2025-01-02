@@ -13,4 +13,5 @@ public interface ItemRepository extends JpaRepository<Item, String> {
     List<Item> findByCategoryId(String categoryId);
     List<Item> findByActiveAndCategoryId(boolean active, String categoryId);
     List<Item> findByType(ItemType type);
+    long countByType(ItemType type);
 }

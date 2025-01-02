@@ -33,21 +33,35 @@ export interface Item {
   code: string;
   name: string;
   description?: string;
-  category: string;
+  category: {
+    id: string;
+    name: string;
+    type: ItemType;
+    active: boolean;
+  };
   basePrice: number;
   sizePrices: Record<string, number>;
   type: ItemType;
   active: boolean;
-  availableCustomizations?: number[];
+  availableCustomizations?: Array<{
+    id: number;
+    name: string;
+    type: ItemType;
+    options: Array<{
+      name: string;
+      price: number;
+    }>;
+    maxOptions: number;
+  }>;
 }
 
 export interface ItemFormData {
   name: string;
-  description?: string;
-  category: string;
-  basePrice: number;
-  sizePrices: Record<string, number>;
   type: ItemType;
+  basePrice: number;
+  categoryId: string;
+  description: string;
+  sizePrices: Record<string, number>;
   active: boolean;
   availableCustomizations?: number[];
 }

@@ -238,81 +238,84 @@ export interface Customization {
     name: string;
     price: number;
   }>;
-  maxOptions: 5;
+  maxOptions: number;
+}
+
+interface ItemRequest {
+  name: string;
+  categoryId: string;
+  basePrice: number;
+  type: ItemType;
+  sizePrices?: Record<string, number>;
+  availableCustomizations?: number[];
+  description?: string;
+  active?: boolean;
 }
 
 export const itemsAPI = {
   getItems: async () => {
     try {
-      const response = await axiosInstance.get('/api/items');
+      console.log('Fetching items...');
+      const response = await axiosInstance.get('/items');
+      console.log('Items response:', response.data);
       return response.data;
     } catch (error) {
-      if (error instanceof AxiosError) {
-        console.error('Error fetching items:', error.message);
-      }
+      console.error('Error fetching items:', error);
       throw error;
     }
   },
 
   getCategories: async () => {
     try {
-      const response = await axiosInstance.get('/api/categories');
+      const response = await axiosInstance.get('/categories');
       return response.data;
     } catch (error) {
-      if (error instanceof AxiosError) {
-        console.error('Error fetching categories:', error.message);
-      }
+      console.error('Error fetching categories:', error);
       throw error;
     }
   },
 
-  createCategory: async (category: { name: string; type: string }) => {
+  createItem: async (item: ItemRequest) => {
     try {
-      const response = await axiosInstance.post('/api/categories', category);
+      console.log('Creating item with data:', item);
+      const response = await axiosInstance.post('/items', item);
       return response.data;
     } catch (error) {
-      if (error instanceof AxiosError) {
-        console.error('Error creating category:', error.message);
-      }
+      console.error('Error creating item:', error);
       throw error;
     }
   },
 
-  createItem: async (item: Omit<Item, 'code'>) => {
+  updateItem: async (code: string, item: ItemRequest) => {
     try {
-      const response = await axiosInstance.post('/api/items', item);
+      console.log('Updating item with code:', code, 'data:', item);
+      const response = await axiosInstance.put(`/items/${code}`, item);
       return response.data;
     } catch (error) {
-      if (error instanceof AxiosError) {
-        console.error('Error creating item:', error.message);
-      }
-      throw error;
-    }
-  },
-
-  updateItem: async (code: string, item: Omit<Item, 'code'>) => {
-    try {
-      const response = await axiosInstance.put(`/api/items/${code}`, item);
-      return response.data;
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        console.error('Error updating item:', error.message);
-      }
+      console.error('Error updating item:', error);
       throw error;
     }
   },
 
   deleteItem: async (code: string) => {
     try {
-      const response = await axiosInstance.delete(`/api/items/${code}`);
+      const response = await axiosInstance.delete(`/items/${code}`);
       return response.data;
     } catch (error) {
-      if (error instanceof AxiosError) {
-        console.error('Error deleting item:', error.message);
-      }
+      console.error('Error deleting item:', error);
       throw error;
     }
-  }
+  },
+
+  getItemsByType: async (type: ItemType) => {
+    try {
+      const response = await axiosInstance.get(`/items/by-type/${type}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching items by type:', error);
+      throw error;
+    }
+  },
 };
 
 export const categoriesAPI = {

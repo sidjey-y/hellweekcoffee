@@ -52,17 +52,21 @@ public class SecurityConfig {
                 // Manager and Admin endpoints
                 .requestMatchers(
                     "/api/items/**",
-                    "/api/categories/**"
+                    "/items/**",
+                    "/api/categories/**",
+                    "/categories/**"
                 ).hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
                 
                 // Cashier endpoints
                 .requestMatchers(
                     "/api/orders/**",
-                    "/api/customers/search"
+                    "/orders/**",
+                    "/api/customers/search",
+                    "/customers/search"
                 ).hasAnyAuthority("ROLE_CASHIER", "ROLE_MANAGER", "ROLE_ADMIN")
                 
                 // Member registration (accessible by Manager and Cashier)
-                .requestMatchers("/api/customers/register")
+                .requestMatchers("/api/customers/register", "/customers/register")
                 .hasAnyAuthority("ROLE_MANAGER", "ROLE_CASHIER", "ROLE_ADMIN")
                 
                 // Require authentication for all other endpoints

@@ -53,6 +53,7 @@ com\hellweek\coffee\dto\LoginRequest.class
 com\hellweek\coffee\dto\analytics\ProductSalesAnalytics.class
 com\hellweek\coffee\model\ItemCustomizationId.class
 com\hellweek\coffee\model\PaymentMethod.class
+com\hellweek\coffee\service\ItemService$1.class
 com\hellweek\coffee\dto\analytics\SalesAnalytics.class
 com\hellweek\coffee\repository\CustomizationOptionRepository.class
 com\hellweek\coffee\service\TransactionAnalyticsService.class
