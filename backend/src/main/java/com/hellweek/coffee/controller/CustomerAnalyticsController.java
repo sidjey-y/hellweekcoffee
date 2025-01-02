@@ -1,31 +1,36 @@
 package com.hellweek.coffee.controller;
 
-import com.hellweek.coffee.dto.CustomerAnalytics;
 import com.hellweek.coffee.service.CustomerAnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/analytics/customers")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"}, allowCredentials = "true")
 public class CustomerAnalyticsController {
     private final CustomerAnalyticsService analyticsService;
 
-    @GetMapping("/{customerId}")
-    public ResponseEntity<CustomerAnalytics> getCustomerAnalytics(@PathVariable Long customerId) {
-        return ResponseEntity.ok(analyticsService.generateCustomerAnalytics(customerId));
+    @GetMapping("/growth")
+    public ResponseEntity<Map<String, Long>> getCustomerGrowth() {
+        return ResponseEntity.ok(analyticsService.getCustomerGrowthByMonth());
     }
 
-    @GetMapping("/tiers/{tier}/benefits")
-    public ResponseEntity<Map<String, Object>> getTierBenefits(@PathVariable String tier) {
-        Map<String, Object> benefits = new HashMap<>();
-        benefits.put("discount", CustomerAnalytics.getTierDiscount(tier));
-        benefits.put("pointsMultiplier", CustomerAnalytics.getTierPointsMultiplier(tier));
-        return ResponseEntity.ok(benefits);
+    @GetMapping("/new")
+    public ResponseEntity<Long> getNewCustomers(@RequestParam(defaultValue = "30") int days) {
+        return ResponseEntity.ok(analyticsService.getNewCustomersInLastDays(days));
+    }
+
+    @GetMapping("/conversion-rate")
+    public ResponseEntity<Map<String, Object>> getMembershipConversionRate() {
+        double rate = analyticsService.getMembershipConversionRate();
+        Map<String, Object> response = new HashMap<>();
+        response.put("rate", rate);
+        response.put("formatted", String.format("%.2f%%", rate));
+        return ResponseEntity.ok(response);
     }
 }

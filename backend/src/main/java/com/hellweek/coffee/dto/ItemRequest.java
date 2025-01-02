@@ -4,30 +4,32 @@ import com.hellweek.coffee.model.ItemType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
-import java.util.Map;
 import java.util.Set;
 
 @Data
 public class ItemRequest {
-    @NotBlank(message = "Item name is required")
+    @NotBlank(message = "Name is required")
     private String name;
 
-    @NotBlank(message = "Category ID is required")
-    private String categoryId;
+    @NotNull(message = "Type is required")
+    private ItemType type;
 
     @NotNull(message = "Base price is required")
     @Positive(message = "Base price must be positive")
     private Double basePrice;
 
-    @NotNull(message = "Item type is required")
-    private ItemType type;
-
-    private Map<String, Double> sizePrices;
-
-    private Set<Long> availableCustomizations;
+    @NotBlank(message = "Category ID is required")
+    private String categoryId;
 
     private String description;
-    
+
+    @NotNull(message = "Quantity is required")
+    @PositiveOrZero(message = "Quantity cannot be negative")
+    private Integer quantity = 0;
+
     private boolean active = true;
+
+    private Set<String> availableCustomizations;
 }

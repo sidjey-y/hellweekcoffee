@@ -49,12 +49,23 @@ public class SecurityConfig {
                     "/api/analytics/**"
                 ).hasAuthority("ROLE_ADMIN")
                 
+                // Manager and Admin endpoints - Write operations for items
+                .requestMatchers(HttpMethod.POST, "/api/items/**", "/items/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/items/**", "/items/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/items/**", "/items/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+                
+                // Read operations for items - accessible by Cashiers too
+                .requestMatchers(HttpMethod.GET, "/api/items/**", "/items/**")
+                .hasAnyAuthority("ROLE_CASHIER", "ROLE_MANAGER", "ROLE_ADMIN")
+                
+                // Categories management
+                .requestMatchers("/api/categories/**", "/categories/**")
+                .hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+                
                 // Manager and Admin endpoints
                 .requestMatchers(
-                    "/api/items/**",
-                    "/items/**",
-                    "/api/categories/**",
-                    "/categories/**"
+                    "/api/customers/search",
+                    "/customers/search"
                 ).hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
                 
                 // Cashier endpoints
@@ -92,16 +103,19 @@ public class SecurityConfig {
             "http://localhost:3000",
             "http://localhost:3001"
         )); 
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
         configuration.setAllowedHeaders(Arrays.asList(
             "Authorization",
             "Content-Type",
             "Accept",
             "Origin",
-            "X-Requested-With"
+            "X-Requested-With",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers"
         ));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

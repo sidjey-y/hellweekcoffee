@@ -30,12 +30,7 @@ public class TransactionItem {
     
     private String size;
     
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(
-        name = "transaction_item_customizations",
-        joinColumns = @JoinColumn(name = "transaction_item_id"),
-        indexes = @Index(name = "idx_transaction_item_id", columnList = "transaction_item_id")
-    )
+    @OneToMany(mappedBy = "transactionItem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemCustomization> customizations = new ArrayList<>();
     
     @Column(name = "item_price", precision = 10, scale = 2)
@@ -65,13 +60,13 @@ public class TransactionItem {
         }
     }
     
-    @Embeddable
-    @Data
-    @NoArgsConstructor
-    public static class ItemCustomization {
-        private String name;
-        private String option;
-        @Column(precision = 10, scale = 2)
-        private BigDecimal price = BigDecimal.ZERO;
+    public void addCustomization(ItemCustomization customization) {
+        customizations.add(customization);
+        customization.setTransactionItem(this);
+    }
+    
+    public void removeCustomization(ItemCustomization customization) {
+        customizations.remove(customization);
+        customization.setTransactionItem(null);
     }
 }

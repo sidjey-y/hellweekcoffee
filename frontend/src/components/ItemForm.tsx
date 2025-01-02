@@ -9,16 +9,43 @@ import {
   SelectChangeEvent,
   Button,
   CircularProgress,
+  Typography,
 } from '@mui/material';
-import { Item, ItemFormData, ItemType, ITEM_TYPES } from '../types/item';
+import { 
+  Item, 
+  ItemType, 
+  ITEM_TYPES,
+  Size,
+  CategoryType,
+  CATEGORY_TYPES,
+  isDrinkType,
+  calculateSizePrices
+} from '../types/item';
+
+const defaultSizePrices: Record<Size, number> = {
+  SMALL: 0,
+  MEDIUM: 0,
+  LARGE: 0
+};
+
+type ItemFormData = {
+  name: string;
+  type: ItemType;
+  basePrice: number;
+  categoryId: string;
+  description: string;
+  sizePrices: Record<Size, number>;
+  active: boolean;
+  availableCustomizations?: string[];
+};
 
 const defaultFormData: ItemFormData = {
   name: '',
-  type: 'ESPRESSO_DRINK',
+  type: ITEM_TYPES.DRINKS,
   basePrice: 0,
-  categoryId: 'GENERAL',
+  categoryId: '',
   description: '',
-  sizePrices: {},
+  sizePrices: defaultSizePrices,
   active: true,
   availableCustomizations: [],
 };
@@ -41,46 +68,56 @@ const ItemForm: React.FC<ItemFormProps> = ({ onSubmit, onCancel, isLoading = fal
         basePrice: selectedItem.basePrice,
         categoryId: selectedItem.category.id,
         description: selectedItem.description || '',
-        sizePrices: selectedItem.sizePrices || {},
+        sizePrices: selectedItem.sizePrices || { ...defaultSizePrices },
         active: selectedItem.active,
-        availableCustomizations: selectedItem.availableCustomizations?.map((customization) => customization.id) || [],
+        availableCustomizations: selectedItem.availableCustomizations?.map(c => c.id) || [],
       });
     } else {
-      setFormData(defaultFormData);
+      setFormData({
+        ...defaultFormData,
+        sizePrices: calculateSizePrices(defaultFormData.basePrice)
+      });
     }
   }, [selectedItem]);
 
   const handleTextFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'basePrice' ? Number(value) : value,
-    }));
+    if (name === 'basePrice') {
+      const basePrice = Number(value);
+      setFormData(prev => ({
+        ...prev,
+        basePrice,
+        sizePrices: isDrinkType(prev.type) ? calculateSizePrices(basePrice) : { ...defaultSizePrices }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: name === 'quantity' ? Number(value) : value
+      }));
+    }
   };
 
   const handleSelectChange = (e: SelectChangeEvent) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (name === 'type') {
+      const type = value as ItemType;
+      setFormData(prev => ({
+        ...prev,
+        type,
+        categoryId: '', // Reset category when type changes
+        sizePrices: isDrinkType(type) ? calculateSizePrices(prev.basePrice) : { ...defaultSizePrices }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
-  };
-
-  const isDrinkType = (type: ItemType): boolean => {
-    return ['ESPRESSO_DRINK', 'BLENDED_DRINK', 'TEA', 'OTHER_DRINK'].includes(type);
-  };
-
-  const isFoodType = (type: ItemType): boolean => {
-    return ['PASTRY', 'CAKE', 'SANDWICH', 'PASTA', 'OTHER_FOOD'].includes(type);
-  };
-
-  const isMerchandiseType = (type: ItemType): boolean => {
-    return ['TSHIRT', 'BAG', 'MUG', 'OTHER_MERCHANDISE'].includes(type);
   };
 
   return (
@@ -105,9 +142,9 @@ const ItemForm: React.FC<ItemFormProps> = ({ onSubmit, onCancel, isLoading = fal
             onChange={handleSelectChange}
             label="Type"
           >
-            {Object.values(ITEM_TYPES).map((type) => (
-              <MenuItem key={type} value={type}>
-                {type.replace(/_/g, ' ')}
+            {Object.entries(ITEM_TYPES).map(([key, value]) => (
+              <MenuItem key={key} value={value}>
+                {value.replace(/_/g, ' ')}
               </MenuItem>
             ))}
           </Select>
@@ -120,15 +157,11 @@ const ItemForm: React.FC<ItemFormProps> = ({ onSubmit, onCancel, isLoading = fal
             onChange={handleSelectChange}
             label="Category"
           >
-            {isDrinkType(formData.type) && (
-              <MenuItem value="DRINKS">Drinks</MenuItem>
-            )}
-            {isFoodType(formData.type) && (
-              <MenuItem value="FOOD">Food</MenuItem>
-            )}
-            {isMerchandiseType(formData.type) && (
-              <MenuItem value="MERCHANDISE">Merchandise</MenuItem>
-            )}
+            {CATEGORY_TYPES[formData.type].map((categoryType) => (
+              <MenuItem key={categoryType} value={categoryType}>
+                {categoryType.replace(/_/g, ' ')}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
         <TextField
@@ -143,6 +176,7 @@ const ItemForm: React.FC<ItemFormProps> = ({ onSubmit, onCancel, isLoading = fal
           error={formData.basePrice <= 0}
           helperText={formData.basePrice <= 0 ? 'Base price must be greater than 0' : ''}
           InputProps={{
+            startAdornment: <span>₱</span>,
             inputProps: { min: 0, step: 0.01 }
           }}
         />
@@ -156,6 +190,20 @@ const ItemForm: React.FC<ItemFormProps> = ({ onSubmit, onCancel, isLoading = fal
           multiline
           rows={3}
         />
+        {isDrinkType(formData.type) && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Size Prices (Auto-calculated)
+            </Typography>
+            <Box sx={{ pl: 2 }}>
+              {Object.entries(formData.sizePrices).map(([size, price]) => (
+                <Typography key={size}>
+                  {size}: ₱{price.toFixed(2)}
+                </Typography>
+              ))}
+            </Box>
+          </Box>
+        )}
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>
           <Button onClick={onCancel} disabled={isLoading}>
             Cancel
@@ -164,7 +212,7 @@ const ItemForm: React.FC<ItemFormProps> = ({ onSubmit, onCancel, isLoading = fal
             type="submit"
             variant="contained"
             color="primary"
-            disabled={isLoading || !formData.name || !formData.type || formData.basePrice <= 0}
+            disabled={isLoading || !formData.name || !formData.type || !formData.categoryId || formData.basePrice <= 0}
             startIcon={isLoading ? <CircularProgress size={20} /> : null}
           >
             {selectedItem ? 'Update' : 'Create'}

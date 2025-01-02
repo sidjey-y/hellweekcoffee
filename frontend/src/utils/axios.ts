@@ -24,7 +24,8 @@ export const axiosInstance = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  withCredentials: true // This is important for CORS with credentials
+  withCredentials: true,
+  validateStatus: (status) => status >= 200 && status < 300 // Only treat 2xx as success
 });
 
 let handleAuthError: () => void = () => {};

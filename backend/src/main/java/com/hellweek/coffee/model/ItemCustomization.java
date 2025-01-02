@@ -2,6 +2,9 @@ package com.hellweek.coffee.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,13 +18,17 @@ public class ItemCustomization {
     private Long id;
 
     @Id
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction_item_id", nullable = false)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private TransactionItem transactionItem;
 
     @Id
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customization_id", nullable = false)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private Customization customization;
 
     @ManyToMany
@@ -32,7 +39,20 @@ public class ItemCustomization {
             @JoinColumn(name = "transaction_item_id", referencedColumnName = "transaction_item_id"),
             @JoinColumn(name = "customization_id", referencedColumnName = "customization_id")
         },
-        inverseJoinColumns = @JoinColumn(name = "customization_option_id")
+        inverseJoinColumns = @JoinColumn(name = "option_id")
     )
     private List<CustomizationOption> selectedOptions = new ArrayList<>();
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal price = BigDecimal.ZERO;
+
+    public void calculatePrice() {
+        this.price = selectedOptions.stream()
+            .map(option -> BigDecimal.valueOf(option.getPrice()))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
 }

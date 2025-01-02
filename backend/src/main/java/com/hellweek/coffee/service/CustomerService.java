@@ -11,6 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Random;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.thymeleaf.context.Context;
 
 @Service
 @RequiredArgsConstructor
@@ -28,11 +31,10 @@ public class CustomerService {
                 validateMemberFields(request);
             }
 
-            // Generate membership ID for premium members
-            if (request.isMember() && request.getMembershipId() == null) {
+            // Generate membership ID if customer is a member
+            if (request.isMember()) {
                 String membershipId = generateUniqueMembershipId();
                 request.setMembershipId(membershipId);
-                logger.info("Generated membership ID: {}", membershipId);
             }
 
             // If membershipId is provided, verify it doesn't exist
@@ -49,27 +51,27 @@ public class CustomerService {
             customer.setPhone(request.getPhone());
             customer.setMember(request.isMember());
             customer.setMembershipId(request.getMembershipId());
+            customer.setActive(true);
 
             logger.debug("Saving customer to database: {}", customer);
-            customer = customerRepository.save(customer);
-            logger.info("Successfully created customer with ID: {}", customer.getId());
+            Customer savedCustomer = customerRepository.save(customer);
+            logger.info("Successfully created customer with ID: {}", savedCustomer.getId());
 
             // Send membership email if customer is a member and has an email
-            if (customer.isMember() && customer.getEmail() != null && !customer.getEmail().isEmpty()) {
-                try {
-                    emailService.sendMembershipEmail(
-                        customer.getEmail(),
-                        customer.getMembershipId(),
-                        customer.getFirstName()
-                    );
-                    logger.info("Sent membership email to: {}", customer.getEmail());
-                } catch (Exception e) {
-                    logger.error("Failed to send membership email", e);
-                    // Don't throw the error, just log it
-                }
+            if (savedCustomer.getMembershipId() != null && savedCustomer.getEmail() != null) {
+                Context context = new Context();
+                context.setVariable("membershipId", savedCustomer.getMembershipId());
+                context.setVariable("firstName", savedCustomer.getFirstName());
+                
+                emailService.sendEmail(
+                    savedCustomer.getEmail(),
+                    "Welcome to HellWeek Coffee - Your Membership ID",
+                    "membership-email",
+                    context
+                );
             }
 
-            return customer;
+            return savedCustomer;
         } catch (Exception e) {
             logger.error("Error creating customer", e);
             throw e;

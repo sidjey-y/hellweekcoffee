@@ -11,14 +11,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CategoryRequest {
-    @NotBlank(message = "Name is required")
+    @NotBlank
+    private String categoryId;
+    
+    @NotBlank
     private String name;
-
-    @NotNull(message = "Type is required")
-    private ItemType type;
-
-    public CategoryRequest(String name, String type) {
-        this.name = name;
-        this.type = ItemType.valueOf(type);
-    }
+    
+    private boolean active = true;
 } 

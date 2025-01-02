@@ -1,5 +1,5 @@
 import { axiosInstance, authInstance } from '../utils/axios';
-import { Item, ItemType } from '../types/item';
+import { Item, ItemType, ItemRequest } from '../types/item';
 import { AxiosError } from 'axios';
 
 // Create a function to handle logout that can be set from outside
@@ -217,7 +217,7 @@ export interface Category {
   id: string;
   name: string;
   type: ItemType;
-  isActive: boolean;
+  active: boolean;
 }
 
 export interface Customer {
@@ -241,68 +241,60 @@ export interface Customization {
   maxOptions: number;
 }
 
-interface ItemRequest {
-  name: string;
-  categoryId: string;
-  basePrice: number;
-  type: ItemType;
-  sizePrices?: Record<string, number>;
-  availableCustomizations?: number[];
-  description?: string;
-  active?: boolean;
-}
-
 export const itemsAPI = {
   getItems: async () => {
     try {
-      console.log('Fetching items...');
       const response = await axiosInstance.get('/items');
-      console.log('Items response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error fetching items:', error);
+      if (error instanceof AxiosError) {
+        console.error('Error fetching items:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers,
+            baseURL: error.config?.baseURL
+          }
+        });
+      }
       throw error;
     }
   },
 
-  getCategories: async () => {
+  createItem: async (data: ItemRequest) => {
     try {
-      const response = await axiosInstance.get('/categories');
+      const response = await axiosInstance.post('/items', data);
       return response.data;
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      if (error instanceof AxiosError) {
+        console.error('Error creating item:', error.message);
+      }
       throw error;
     }
   },
 
-  createItem: async (item: ItemRequest) => {
+  updateItem: async (code: string, data: ItemRequest) => {
     try {
-      console.log('Creating item with data:', item);
-      const response = await axiosInstance.post('/items', item);
+      const response = await axiosInstance.put(`/items/${code}`, data);
       return response.data;
     } catch (error) {
-      console.error('Error creating item:', error);
-      throw error;
-    }
-  },
-
-  updateItem: async (code: string, item: ItemRequest) => {
-    try {
-      console.log('Updating item with code:', code, 'data:', item);
-      const response = await axiosInstance.put(`/items/${code}`, item);
-      return response.data;
-    } catch (error) {
-      console.error('Error updating item:', error);
+      if (error instanceof AxiosError) {
+        console.error('Error updating item:', error.message);
+      }
       throw error;
     }
   },
 
   deleteItem: async (code: string) => {
     try {
-      const response = await axiosInstance.delete(`/items/${code}`);
-      return response.data;
+      await axiosInstance.delete(`/items/${code}`);
     } catch (error) {
-      console.error('Error deleting item:', error);
+      if (error instanceof AxiosError) {
+        console.error('Error deleting item:', error.message);
+      }
       throw error;
     }
   },
@@ -312,7 +304,9 @@ export const itemsAPI = {
       const response = await axiosInstance.get(`/items/by-type/${type}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching items by type:', error);
+      if (error instanceof AxiosError) {
+        console.error('Error fetching items by type:', error.message);
+      }
       throw error;
     }
   },
@@ -321,19 +315,29 @@ export const itemsAPI = {
 export const categoriesAPI = {
   getCategories: async () => {
     try {
-      const response = await axiosInstance.get('/api/categories');
+      const response = await axiosInstance.get('/categories');
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
-        console.error('Error fetching categories:', error.message);
+        console.error('Error fetching categories:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers,
+            baseURL: error.config?.baseURL
+          }
+        });
       }
       throw error;
     }
   },
 
-  createCategory: async (category: Omit<Category, 'id' | 'isActive'>) => {
+  createCategory: async (category: Omit<Category, 'id' | 'active'>) => {
     try {
-      const response = await axiosInstance.post('/api/categories', category);
+      const response = await axiosInstance.post('/categories', category);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -345,7 +349,7 @@ export const categoriesAPI = {
 
   updateCategory: async (id: string, category: Partial<Category>) => {
     try {
-      const response = await axiosInstance.put(`/api/categories/${id}`, category);
+      const response = await axiosInstance.put(`/categories/${id}`, category);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -357,7 +361,7 @@ export const categoriesAPI = {
 
   deleteCategory: async (id: string) => {
     try {
-      const response = await axiosInstance.delete(`/api/categories/${id}`);
+      const response = await axiosInstance.delete(`/categories/${id}`);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -371,11 +375,23 @@ export const categoriesAPI = {
 export const customizationAPI = {
   getCustomizations: async () => {
     try {
-      const response = await axiosInstance.get('/api/customizations');
+      console.log('Making request to /customizations');
+      const response = await axiosInstance.get('/customizations');
+      console.log('Response from /customizations:', response.data);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
-        console.error('Error fetching customizations:', error.message);
+        console.error('Error fetching customizations:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers,
+            baseURL: error.config?.baseURL
+          }
+        });
       }
       throw error;
     }
@@ -383,7 +399,7 @@ export const customizationAPI = {
 
   createCustomization: async (customization: Omit<Customization, 'id'>) => {
     try {
-      const response = await axiosInstance.post('/api/customizations', customization);
+      const response = await axiosInstance.post('/customizations', customization);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -395,7 +411,7 @@ export const customizationAPI = {
 
   updateCustomization: async (id: number, customization: Partial<Customization>) => {
     try {
-      const response = await axiosInstance.put(`/api/customizations/${id}`, customization);
+      const response = await axiosInstance.put(`/customizations/${id}`, customization);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -407,7 +423,7 @@ export const customizationAPI = {
 
   deleteCustomization: async (id: number) => {
     try {
-      const response = await axiosInstance.delete(`/api/customizations/${id}`);
+      const response = await axiosInstance.delete(`/customizations/${id}`);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {

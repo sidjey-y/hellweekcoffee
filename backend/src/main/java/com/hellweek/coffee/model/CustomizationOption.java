@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 @Data
 @Entity
@@ -25,5 +27,7 @@ public class CustomizationOption {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customization_id", nullable = false)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private Customization customization;
 }

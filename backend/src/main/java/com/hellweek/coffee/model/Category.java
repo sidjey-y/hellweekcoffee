@@ -8,13 +8,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import jakarta.persistence.Column;
 
 @Entity
 @Table(name = "categories")
 @Data
-@NoArgsConstructor
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Category {
     @Id
@@ -25,8 +23,8 @@ public class Category {
     private String name;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "item_type")
-    private ItemType type;
+    @Column(name = "category_type")
+    private CategoryType type;
     
     private boolean active = true;
 }

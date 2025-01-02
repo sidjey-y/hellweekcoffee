@@ -1,90 +1,108 @@
 package com.hellweek.coffee.service;
 
-import com.hellweek.coffee.dto.CustomizationRequest;
 import com.hellweek.coffee.model.Customization;
 import com.hellweek.coffee.model.CustomizationOption;
+import com.hellweek.coffee.model.CategoryType;
 import com.hellweek.coffee.repository.CustomizationRepository;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.annotation.PostConstruct;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class CustomizationService {
     private final CustomizationRepository customizationRepository;
 
+    public CustomizationService(CustomizationRepository customizationRepository) {
+        this.customizationRepository = customizationRepository;
+    }
+
+    @PostConstruct
     @Transactional
-    public Customization createCustomization(CustomizationRequest request) {
-        if (customizationRepository.existsByName(request.getName())) {
-            throw new IllegalArgumentException("Customization name already exists");
+    public void initializeCustomizations() {
+        if (customizationRepository.count() > 0) {
+            return;
         }
 
+        // Drink customizations
+        Map<String, Double> milkOptions = Map.of(
+            "Soy Milk", 35.0,
+            "Oat Milk", 40.0,
+            "Almond Milk", 35.0
+        );
+        createCustomization("MILK", "Milk Options", milkOptions, CategoryType.ESPRESSO_DRINKS);
+
+        Map<String, Double> syrupOptions = Map.of(
+            "Vanilla", 25.0,
+            "Caramel", 25.0,
+            "Hazelnut", 25.0
+        );
+        createCustomization("SYRUP", "Flavored Syrup", syrupOptions, CategoryType.ESPRESSO_DRINKS);
+
+        Map<String, Double> sauceOptions = Map.of(
+            "Caramel", 30.0,
+            "Mocha", 30.0,
+            "White Mocha", 35.0
+        );
+        createCustomization("SAUCE", "Sauce Add-On", sauceOptions, CategoryType.BLENDED_DRINKS);
+
+        Map<String, Double> toppingOptions = Map.of(
+            "Whipped Cream", 20.0,
+            "Chocolate Chips", 25.0,
+            "Caramel Drizzle", 20.0
+        );
+        createCustomization("TOPPINGS", "Extra Toppings", toppingOptions, CategoryType.BLENDED_DRINKS);
+
+        // Food customizations
+        Map<String, Double> riceOptions = Map.of(
+            "Garlic Rice", 20.0,
+            "Yang Chow Rice", 30.0,
+            "Brown Rice", 25.0
+        );
+        createCustomization("RICE", "Rice Options", riceOptions, CategoryType.SANDWICHES);
+
+        Map<String, Double> extraOptions = Map.of(
+            "Extra Cheese", 30.0,
+            "Extra Bacon", 40.0,
+            "Extra Vegetables", 20.0
+        );
+        createCustomization("EXTRAS", "Extra Add-ons", extraOptions, CategoryType.SANDWICHES);
+
+        Map<String, Double> pastaOptions = Map.of(
+            "Extra Sauce", 25.0,
+            "Extra Cheese", 30.0,
+            "Extra Meatballs", 45.0
+        );
+        createCustomization("PASTA_EXTRAS", "Pasta Add-ons", pastaOptions, CategoryType.PASTAS);
+    }
+
+    private void createCustomization(String code, String name, Map<String, Double> optionsWithPrices, CategoryType categoryType) {
         Customization customization = new Customization();
-        customization.setName(request.getName());
-        customization.setDescription(request.getDescription());
-        customization.setApplicableType(request.getApplicableType());
+        customization.setCode(code);
+        customization.setName(name);
+        customization.setCategoryType(categoryType);
+        customization.setActive(true);
 
-        List<CustomizationOption> options = new ArrayList<>();
-        if (request.getOptions() != null) {
-            for (CustomizationRequest.CustomizationOptionRequest optionRequest : request.getOptions()) {
-                CustomizationOption option = new CustomizationOption();
-                option.setName(optionRequest.getName());
-                option.setPrice(optionRequest.getPrice());
-                option.setCustomization(customization);
-                options.add(option);
-            }
-        }
-        customization.setOptions(options);
+        // Create and add CustomizationOption entities
+        optionsWithPrices.forEach((optionName, price) -> {
+            CustomizationOption option = new CustomizationOption();
+            option.setName(optionName);
+            option.setPrice(price);
+            customization.addOption(option);
+        });
 
-        return customizationRepository.save(customization);
+        customizationRepository.save(customization);
     }
 
-    @Transactional
-    public Customization updateCustomization(Long id, CustomizationRequest request) {
-        Customization customization = customizationRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Customization not found"));
-
-        if (!customization.getName().equals(request.getName()) && 
-            customizationRepository.existsByName(request.getName())) {
-            throw new IllegalArgumentException("Customization name already exists");
-        }
-
-        customization.setName(request.getName());
-        customization.setDescription(request.getDescription());
-        customization.setApplicableType(request.getApplicableType());
-
-        // Update options
-        customization.getOptions().clear();
-        if (request.getOptions() != null) {
-            for (CustomizationRequest.CustomizationOptionRequest optionRequest : request.getOptions()) {
-                CustomizationOption option = new CustomizationOption();
-                option.setName(optionRequest.getName());
-                option.setPrice(optionRequest.getPrice());
-                option.setCustomization(customization);
-                customization.getOptions().add(option);
-            }
-        }
-
-        return customizationRepository.save(customization);
+    public Set<Customization> getCustomizationsByCategory(CategoryType categoryType) {
+        return customizationRepository.findByCategoryTypeAndActive(categoryType, true);
     }
 
-    @Transactional
-    public void deleteCustomization(Long id) {
-        Customization customization = customizationRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Customization not found"));
-        customizationRepository.delete(customization);
-    }
-
-    public List<Customization> getCustomizationsByType(Customization.ItemType type) {
-        return customizationRepository.findByApplicableType(type);
-    }
-
-    public Customization getCustomization(Long id) {
-        return customizationRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Customization not found"));
+    @Transactional(readOnly = true)
+    public List<Customization> getAllCustomizations() {
+        return customizationRepository.findByActive(true);
     }
 }
