@@ -100,7 +100,7 @@ const Login = () => {
           component="h1"
           variant="h4"
           sx={{
-            mb: 4, // Adds space between title and the form
+            mb: 4, 
             fontWeight: 'bold',
             color: '#230C02'
           }}

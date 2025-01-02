@@ -31,6 +31,7 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   Logout as LogoutIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -206,24 +207,28 @@ const Items = () => {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography variant="h6" component="div">
-            HellWeek Coffee - Items Management
-          </Typography>
-          <Button
-            color="inherit"
-            onClick={handleLogout}
-            startIcon={<LogoutIcon />}
-          >
-            Logout
-          </Button>
-        </Toolbar>
+      <AppBar position="static" sx={{ backgroundColor: '#4d351d', color: 'white' }} elevation={1}>
+              <Toolbar sx={{ justifyContent: 'space-between' }}>
+              <Typography variant="h6" component="div" fontWeight="bold">
+                Hell Week Coffee
+              </Typography>
+              <Button
+                color="inherit"
+                onClick={handleLogout}
+                startIcon={<LogoutIcon />}
+                >
+                Logout
+              </Button>
+             </Toolbar>
       </AppBar>
 
+      <Box sx={{backgroundColor: '#EEDCC6', minHeight: '100vh', mt: 0, paddingTop: 4}}>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h4" component="h1">
+          <IconButton onClick={() => navigate('/admin/dashboard')} sx={{ mr: 2 }}>
+          <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4" component="h1" fontWeight='bold' sx={{ flexGrow: 1 }}>
             Items Management
           </Typography>
           <Button
@@ -231,6 +236,7 @@ const Items = () => {
             color="primary"
             startIcon={<AddIcon />}
             onClick={handleAddItem}
+            sx={{backgroundColor: '#4d351d'}}
           >
             Add New Item
           </Button>
@@ -239,13 +245,13 @@ const Items = () => {
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
-              <TableRow>
-                <TableCell>Code</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Base Price</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Actions</TableCell>
+              <TableRow sx={{backgroundColor: '#4d351d'}}>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Code</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Type</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Base Price</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Category</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -357,6 +363,7 @@ const Items = () => {
           </DialogActions>
         </Dialog>
       </Container>
+      </Box>
     </>
   );
 };
