@@ -9,7 +9,6 @@ import {
   Button,
   AppBar,
   Toolbar,
-  IconButton,
 } from '@mui/material';
 import {
   PeopleAlt as PeopleIcon,
@@ -64,10 +63,10 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
+      <AppBar position="static" sx={{ backgroundColor: '#230c02', color: 'white' }} elevation={1}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography variant="h6" component="div">
-            HellWeek Coffee
+          <Typography variant="h6" component="div" fontWeight="bold">
+            Hell Week Coffee
           </Typography>
           <Button
             color="inherit"
@@ -79,65 +78,105 @@ const AdminDashboard: React.FC = () => {
         </Toolbar>
       </AppBar>
       
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Typography variant="h4" gutterBottom component="h1">
-          Admin Dashboard
+      <Box sx={{
+        position: 'relative', 
+        backgroundImage: 'url("https://www.myboysen.com/wp-content/uploads/2023/08/Cafe-Interior-feature.jpg")',
+        backgroundSize: 'cover', 
+        backgroundPosition: 'center',
+        minHeight: '50vh', 
+        paddingTop: 6,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <Box 
+        sx={{
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0,
+          backgroundColor: 'rgba(63, 62, 62, 0.5)', 
+          zIndex: 1, 
+        }}
+      />
+
+        <Typography 
+          variant="h4" 
+          gutterBottom 
+          component="h1" 
+          sx={{ 
+            color: 'white', 
+            fontWeight: 'bold', 
+            textAlign: 'center',
+            position: 'relative', 
+            zIndex: 2, 
+            fontSize: 50
+          }}
+        >
+          ADMIN DASHBOARD
         </Typography>
-        
-        <Grid container spacing={3}>
-          {quickActions.map((action, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Card 
-                sx={{ 
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 3,
-                    transition: 'all 0.3s ease-in-out',
-                  },
-                }}
-                onClick={() => navigate(action.path)}
-              >
-                <CardContent>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 2,
-                    }}
-                  >
+      </Box>
+
+      <Box sx={{ backgroundColor: '#EEDCC6', minHeight: '100vh', mt: 0, paddingTop: 5 }}>
+        <Container maxWidth="lg" sx={{ mb: 4 }}>
+          <Grid container spacing={3}>
+            {quickActions.map((action, index) => (
+              <Grid item xs={12} sm={6} md={3} key={index}>
+                <Card 
+                  sx={{ 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    cursor: 'pointer',
+                    backgroundColor: '#FFF5E9',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 3,
+                      transition: 'all 0.3s ease-in-out',
+                    },
+                  }}
+                  onClick={() => navigate(action.path)}
+                >
+                  <CardContent>
                     <Box
                       sx={{
-                        width: 80,
-                        height: 80,
-                        borderRadius: '50%',
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: `${action.color}15`,
-                        color: action.color,
-                        mb: 2,
+                        gap: 2,
                       }}
                     >
-                      {action.icon}
+                      <Box
+                        sx={{
+                          width: 80,
+                          height: 80,
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: `${action.color}15`,
+                          color: action.color,
+                          mb: 2,
+                        }}
+                      >
+                        {action.icon}
+                      </Box>
+                      <Typography variant="h6" component="h2" align="center" sx={{ fontWeight: 'bold', color: '#230C02' }}>
+                        {action.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" align="center">
+                        {action.description}
+                      </Typography>
                     </Box>
-                    <Typography variant="h6" component="h2" align="center">
-                      {action.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" align="center">
-                      {action.description}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
     </>
   );
 };

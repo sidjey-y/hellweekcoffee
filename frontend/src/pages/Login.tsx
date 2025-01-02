@@ -105,7 +105,7 @@ const Login = () => {
             color: '#230C02'
           }}
         >
-          Hellweek Coffee
+          Hell Week Coffee
         </Typography>
         <Paper
           elevation={3}
