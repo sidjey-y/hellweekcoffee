@@ -1,7 +1,6 @@
 package com.hellweek.coffee.dto;
 
-import com.hellweek.coffee.model.PaymentMethod;
-import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -9,27 +8,19 @@ import java.util.List;
 
 @Data
 public class TransactionRequest {
-    private String membershipId; // null for guest customers
-    private String guestFirstName; // required for guest customers
+    @NotEmpty(message = "Order items cannot be empty")
+    private List<OrderItemRequest> items;
 
-    @NotNull(message = "Payment method is required")
-    private PaymentMethod paymentMethod;
+    @NotNull(message = "Total amount is required")
+    @Positive(message = "Total amount must be positive")
+    private Double total;
 
-    @Valid
-    @NotNull(message = "Items are required")
-    private List<TransactionItemRequest> items;
+    @NotNull(message = "Customer type is required")
+    private String customerType; // "guest" or "member"
 
-    @Data
-    public static class TransactionItemRequest {
-        @NotNull(message = "Item code is required")
-        private String itemCode;
+    // For guest customers
+    private String firstName;
 
-        @NotNull(message = "Quantity is required")
-        @Positive(message = "Quantity must be positive")
-        private Integer quantity;
-
-        private String size; // required for drinks
-        private List<String> customizations;
-        private String notes;
-    }
+    // For member customers
+    private String membershipId;
 }

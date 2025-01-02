@@ -29,41 +29,32 @@ public class TransactionItem {
     @Column(name = "unit_price", nullable = false)
     private double unitPrice;
 
-    @ElementCollection
-    @CollectionTable(
-        name = "transaction_item_customizations",
-        joinColumns = @JoinColumn(name = "transaction_item_id")
-    )
-    @Column(name = "customization_option_id")
-    private List<Long> selectedCustomizationOptions = new ArrayList<>();
-
-    @ElementCollection
-    @CollectionTable(
-        name = "transaction_item_customization_notes",
-        joinColumns = @JoinColumn(name = "transaction_item_id")
-    )
-    @Column(name = "note")
-    private List<String> customizationNotes = new ArrayList<>();
+    @OneToMany(mappedBy = "transactionItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ItemCustomization> customizations = new ArrayList<>();
 
     public double getSubtotal() {
-        return unitPrice * quantity;
-    }
-
-    public void addCustomizationOption(Long optionId, String note) {
-        selectedCustomizationOptions.add(optionId);
-        customizationNotes.add(note);
+        double customizationsTotal = customizations.stream()
+            .flatMap(customization -> customization.getSelectedOptions().stream())
+            .mapToDouble(CustomizationOption::getPrice)
+            .sum();
+        return (unitPrice + customizationsTotal) * quantity;
     }
 
     public boolean hasSameCustomizations(TransactionItem other) {
         if (size != null ? !size.equals(other.size) : other.size != null) {
             return false;
         }
-        
-        if (selectedCustomizationOptions.size() != other.selectedCustomizationOptions.size()) {
+
+        if (customizations.size() != other.customizations.size()) {
             return false;
         }
 
-        return selectedCustomizationOptions.containsAll(other.selectedCustomizationOptions) &&
-               other.selectedCustomizationOptions.containsAll(selectedCustomizationOptions);
+        // Compare customizations
+        return customizations.stream().allMatch(customization ->
+            other.customizations.stream().anyMatch(otherCustomization ->
+                customization.getCustomization().equals(otherCustomization.getCustomization()) &&
+                customization.getSelectedOptions().equals(otherCustomization.getSelectedOptions())
+            )
+        );
     }
 }

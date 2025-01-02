@@ -22,7 +22,7 @@ public class UserService {
         if (userRepository.findByUsername("admin").isEmpty()) {
             User admin = new User();
             admin.setUsername("admin");
-            admin.setPassword(passwordEncoder.encode("admin123")); // Default password
+            admin.setPassword(passwordEncoder.encode("HWC@dmin2024!")); // More secure password
             admin.setFirstName("Admin");
             admin.setLastName("User");
             admin.setRole(User.Role.ADMIN);

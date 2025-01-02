@@ -10,6 +10,6 @@ import java.util.List;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, String> {
     List<Category> findByActive(boolean active);
-    List<Category> findByItemType(ItemType itemType);
-    List<Category> findByActiveAndItemType(boolean active, ItemType itemType);
+    List<Category> findByType(ItemType type);
+    List<Category> findByActiveAndType(boolean active, ItemType type);
 }

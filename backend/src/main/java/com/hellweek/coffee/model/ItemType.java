@@ -1,8 +1,22 @@
 package com.hellweek.coffee.model;
 
 public enum ItemType {
-    DRINK,
-    FOOD,
-    MERCHANDISE,
-    ADD_ON
+    // Drinks
+    ESPRESSO_DRINK,
+    BLENDED_DRINK,
+    TEA,
+    OTHER_DRINK,
+
+    // Food
+    PASTRY,
+    CAKE,
+    SANDWICH,
+    PASTA,
+    OTHER_FOOD,
+
+    // Merchandise
+    TSHIRT,
+    BAG,
+    MUG,
+    OTHER_MERCHANDISE
 }
