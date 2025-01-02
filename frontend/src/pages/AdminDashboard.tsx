@@ -63,7 +63,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <>
-      <AppBar position="static" sx={{ backgroundColor: '#230c02', color: 'white' }} elevation={1}>
+      <AppBar position="static" sx={{ backgroundColor: '#4d351d', color: 'white' }} elevation={1}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Typography variant="h6" component="div" fontWeight="bold">
             Hell Week Coffee
