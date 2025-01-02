@@ -3,23 +3,26 @@ package com.hellweek.coffee.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "transaction_items")
+@Table(name = "transaction_items", indexes = {
+    @Index(name = "idx_transaction_id", columnList = "transaction_id")
+})
 @Data
 @NoArgsConstructor
 public class TransactionItem {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction_id")
     private Transaction transaction;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id")
     private Item item;
     
@@ -27,16 +30,40 @@ public class TransactionItem {
     
     private String size;
     
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
         name = "transaction_item_customizations",
-        joinColumns = @JoinColumn(name = "transaction_item_id")
+        joinColumns = @JoinColumn(name = "transaction_item_id"),
+        indexes = @Index(name = "idx_transaction_item_id", columnList = "transaction_item_id")
     )
     private List<ItemCustomization> customizations = new ArrayList<>();
     
-    private double itemPrice;
+    @Column(name = "item_price", precision = 10, scale = 2)
+    private BigDecimal itemPrice = BigDecimal.ZERO;
     
-    private double totalPrice;
+    @Column(name = "total_price", precision = 10, scale = 2)
+    private BigDecimal totalPrice = BigDecimal.ZERO;
+    
+    public BigDecimal getTotalPrice() {
+        return totalPrice;
+    }
+    
+    public void setTotalPrice(BigDecimal totalPrice) {
+        this.totalPrice = totalPrice;
+    }
+    
+    public void calculateTotalPrice() {
+        BigDecimal baseTotal = itemPrice.multiply(BigDecimal.valueOf(quantity));
+        if (customizations != null && !customizations.isEmpty()) {
+            BigDecimal customizationTotal = customizations.stream()
+                .map(ItemCustomization::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .multiply(BigDecimal.valueOf(quantity));
+            this.totalPrice = baseTotal.add(customizationTotal);
+        } else {
+            this.totalPrice = baseTotal;
+        }
+    }
     
     @Embeddable
     @Data
@@ -44,6 +71,7 @@ public class TransactionItem {
     public static class ItemCustomization {
         private String name;
         private String option;
-        private double price;
+        @Column(precision = 10, scale = 2)
+        private BigDecimal price = BigDecimal.ZERO;
     }
 }

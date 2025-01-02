@@ -6,6 +6,8 @@ import com.hellweek.coffee.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -16,25 +18,25 @@ public class TransactionAnalyticsService {
     private final TransactionRepository transactionRepository;
 
     public List<Transaction> getTransactionsInDateRange(LocalDateTime startDate, LocalDateTime endDate) {
-        return transactionRepository.findCompletedTransactionsInDateRange(
-                TransactionStatus.COMPLETED,
+        return transactionRepository.findByTransactionDateBetweenAndStatus(
                 startDate,
-                endDate
+                endDate,
+                Transaction.TransactionStatus.COMPLETED
         );
     }
 
     public SalesAnalytics getSalesAnalytics(LocalDateTime startDate, LocalDateTime endDate) {
         List<Transaction> transactions = getTransactionsInDateRange(startDate, endDate);
 
-        double totalRevenue = transactions.stream()
-                .mapToDouble(Transaction::getTotal)
-                .sum();
+        BigDecimal totalRevenue = transactions.stream()
+                .map(Transaction::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         int totalOrders = transactions.size();
 
-        double averageOrderValue = totalOrders > 0
-                ? totalRevenue / totalOrders
-                : 0;
+        BigDecimal averageOrderValue = totalOrders > 0
+                ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
         return new SalesAnalytics(totalRevenue, totalOrders, averageOrderValue);
     }
@@ -49,7 +51,7 @@ public class TransactionAnalyticsService {
                 .forEach(item -> {
                     Item menuItem = item.getItem();
                     productSalesMap.computeIfAbsent(menuItem, k -> new ProductSalesData())
-                            .addSale(item.getQuantity(), item.getSubtotal());
+                            .addSale(item.getQuantity(), item.getTotalPrice());
                 });
 
         return productSalesMap.entrySet().stream()
@@ -58,19 +60,19 @@ public class TransactionAnalyticsService {
                         entry.getValue().getQuantitySold(),
                         entry.getValue().getTotalRevenue()
                 ))
-                .sorted(Comparator.comparingDouble(ProductSalesAnalytics::getTotalRevenue).reversed())
+                .sorted(Comparator.comparing(ProductSalesAnalytics::getTotalRevenue).reversed())
                 .collect(Collectors.toList());
     }
 
     public List<PaymentMethodAnalytics> getPaymentMethodAnalytics(LocalDateTime startDate, LocalDateTime endDate) {
         List<Transaction> transactions = getTransactionsInDateRange(startDate, endDate);
 
-        Map<PaymentMethod, PaymentMethodData> paymentMethodMap = new HashMap<>();
+        Map<Transaction.PaymentMethod, PaymentMethodData> paymentMethodMap = new HashMap<>();
 
         transactions.forEach(transaction -> {
-            PaymentMethod method = transaction.getPaymentMethod();
+            Transaction.PaymentMethod method = transaction.getPaymentMethod();
             paymentMethodMap.computeIfAbsent(method, k -> new PaymentMethodData())
-                    .addTransaction(transaction.getTotal());
+                    .addTransaction(transaction.getTotalAmount());
         });
 
         return paymentMethodMap.entrySet().stream()
@@ -79,25 +81,25 @@ public class TransactionAnalyticsService {
                         entry.getValue().getTransactionCount(),
                         entry.getValue().getTotalAmount()
                 ))
-                .sorted(Comparator.comparingDouble(PaymentMethodAnalytics::getTotalAmount).reversed())
+                .sorted(Comparator.comparing(PaymentMethodAnalytics::getTotalAmount).reversed())
                 .collect(Collectors.toList());
     }
 
     @RequiredArgsConstructor
     private static class ProductSalesData {
         private int quantitySold = 0;
-        private double totalRevenue = 0;
+        private BigDecimal totalRevenue = BigDecimal.ZERO;
 
-        public void addSale(int quantity, double revenue) {
+        public void addSale(int quantity, BigDecimal revenue) {
             quantitySold += quantity;
-            totalRevenue += revenue;
+            totalRevenue = totalRevenue.add(revenue);
         }
 
         public int getQuantitySold() {
             return quantitySold;
         }
 
-        public double getTotalRevenue() {
+        public BigDecimal getTotalRevenue() {
             return totalRevenue;
         }
     }
@@ -105,18 +107,18 @@ public class TransactionAnalyticsService {
     @RequiredArgsConstructor
     private static class PaymentMethodData {
         private int transactionCount = 0;
-        private double totalAmount = 0;
+        private BigDecimal totalAmount = BigDecimal.ZERO;
 
-        public void addTransaction(double amount) {
+        public void addTransaction(BigDecimal amount) {
             transactionCount++;
-            totalAmount += amount;
+            totalAmount = totalAmount.add(amount);
         }
 
         public int getTransactionCount() {
             return transactionCount;
         }
 
-        public double getTotalAmount() {
+        public BigDecimal getTotalAmount() {
             return totalAmount;
         }
     }

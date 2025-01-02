@@ -15,20 +15,7 @@ import { validateToken } from './store/slices/authSlice';
 import { AppDispatch } from './store';
 import { AuthProvider } from './components/AuthProvider';
 import { setAuthErrorHandler } from './utils/axios';
-
-const PrivateRoute = ({ children, roles }: { children: React.ReactNode; roles: string[] }) => {
-  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (roles && !roles.includes(user?.role || '')) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-};
+import PrivateRoute from './components/PrivateRoute';
 
 const RoleBasedRedirect = () => {
   const { user } = useSelector((state: RootState) => state.auth);

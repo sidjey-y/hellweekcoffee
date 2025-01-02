@@ -1,40 +1,42 @@
-import { axiosInstance } from '../utils/axios';
+import { axiosInstance, authInstance } from '../utils/axios';
 import { Item, ItemType } from '../types/item';
 import { AxiosError } from 'axios';
 
-// Request interceptor
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token && token.trim()) {
-      config.headers.Authorization = `Bearer ${token.trim()}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// Create a function to handle logout that can be set from outside
+let logoutHandler: () => void = () => {};
 
-// Response interceptor
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // store.dispatch(logout());
-      // window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+export const setLogoutHandler = (handler: () => void) => {
+  logoutHandler = handler;
+};
 
 export const authAPI = {
   login: async (username: string, password: string) => {
     try {
       console.log('Making login request for user:', username);
-      const response = await axiosInstance.post('/api/auth/login', { username, password });
+      console.log('Request details:', {
+        url: '/auth/login',
+        method: 'POST',
+        baseURL: authInstance.defaults.baseURL,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: { username, password: '********' }
+      });
+
+      const response = await authInstance.post('/auth/login', { username, password });
+      
+      // Store token immediately if present
+      if (response.data.token) {
+        const token = response.data.token.trim();
+        localStorage.setItem('token', token);
+        // Set the token for future requests
+        authInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
+      
       console.log('Login response:', {
         status: response.status,
+        statusText: response.statusText,
         headers: response.headers,
         data: {
           ...response.data,
@@ -43,21 +45,51 @@ export const authAPI = {
       });
       return response.data;
     } catch (error: any) {
-      console.error('Login error:', {
+      // Check if it's a network error
+      if (!error.response) {
+        console.error('Network error:', error.message);
+        throw new Error('Could not connect to server. Please check your connection.');
+      }
+
+      // Handle other errors
+      console.error('Login error details:', {
         status: error.response?.status,
+        statusText: error.response?.statusText,
         data: error.response?.data,
-        message: error.message
+        message: error.response?.data?.message || error.message,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        headers: error.config?.headers
       });
-      throw error;
+      
+      // Throw appropriate error message
+      if (error.response?.status === 401) {
+        throw new Error('Invalid username or password');
+      } else if (error.response?.status === 403) {
+        throw new Error('Access denied. Please check your credentials.');
+      } else if (error.response?.status === 404) {
+        throw new Error('Login service not found');
+      } else {
+        throw new Error(error.response?.data?.message || 'Login failed. Please try again.');
+      }
     }
   },
 
   validateToken: async (token: string) => {
     try {
+      if (!token) {
+        throw new Error('No token provided');
+      }
+
       console.log('Making validate request with token:', token.substring(0, 20) + '...');
-      const response = await axiosInstance.get('/api/auth/validate', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      
+      // Set the token in localStorage and headers
+      const trimmedToken = token.trim();
+      localStorage.setItem('token', trimmedToken);
+      authInstance.defaults.headers.common['Authorization'] = `Bearer ${trimmedToken}`;
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${trimmedToken}`;
+      
+      const response = await authInstance.get('/auth/validate');
       console.log('Token validation response:', {
         status: response.status,
         headers: response.headers,
@@ -65,12 +97,35 @@ export const authAPI = {
       });
       return response.data;
     } catch (error: any) {
+      // Check if it's a network error
+      if (!error.response) {
+        console.error('Network error:', error.message);
+        localStorage.removeItem('token');
+        delete authInstance.defaults.headers.common['Authorization'];
+        delete axiosInstance.defaults.headers.common['Authorization'];
+        throw new Error('Could not connect to server. Please check your connection.');
+      }
+
       console.error('Token validation error:', {
         status: error.response?.status,
         data: error.response?.data,
-        message: error.message
+        message: error.message,
+        headers: error.config?.headers
       });
-      throw error;
+
+      // Clear token on validation failure
+      localStorage.removeItem('token');
+      delete authInstance.defaults.headers.common['Authorization'];
+      delete axiosInstance.defaults.headers.common['Authorization'];
+
+      // Throw appropriate error message
+      if (error.response?.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Access denied. Please log in again.');
+      } else {
+        throw new Error(error.response?.data?.message || 'Token validation failed');
+      }
     }
   },
 
@@ -83,14 +138,14 @@ export const authAPI = {
     email?: string;
     phone?: string;
   }) => {
-    const response = await axiosInstance.post('/api/auth/register', request);
+    const response = await authInstance.post('/auth/register', request);
     return response.data;
   },
 
   getCurrentUser: async () => {
     try {
       console.log('Fetching current user...');
-      const response = await axiosInstance.get('/api/auth/me');
+      const response = await authInstance.get('/auth/me');
       console.log('Current user response:', {
         status: response.status,
         headers: response.headers,
@@ -111,7 +166,7 @@ export const authAPI = {
 export const userAPI = {
   getUsers: async () => {
     try {
-      const response = await axiosInstance.get('/api/auth/users');
+      const response = await authInstance.get('/auth/users');
       return response.data.filter((user: any) => user.active);
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -123,7 +178,7 @@ export const userAPI = {
 
   createUser: async (user: any) => {
     try {
-      const response = await axiosInstance.post('/api/auth/register', user);
+      const response = await authInstance.post('/auth/register', user);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -135,7 +190,7 @@ export const userAPI = {
 
   updateUser: async (id: string, user: any) => {
     try {
-      const response = await axiosInstance.put(`/api/auth/users/${id}`, user);
+      const response = await authInstance.put(`/auth/users/${id}`, user);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -147,7 +202,7 @@ export const userAPI = {
 
   deleteUser: async (id: string) => {
     try {
-      const response = await axiosInstance.delete(`/api/auth/users/${id}`);
+      const response = await authInstance.delete(`/auth/users/${id}`);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {

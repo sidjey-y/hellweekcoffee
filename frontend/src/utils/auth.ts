@@ -16,7 +16,9 @@ export const getAuthToken = () => {
     console.warn('Not in browser environment, cannot access localStorage');
     return null;
   }
-  return localStorage.getItem('token');
+  const token = localStorage.getItem('token');
+  console.log('Getting auth token:', token ? `${token.substring(0, 20)}...` : 'no token');
+  return token;
 };
 
 // Function to set auth token
@@ -25,7 +27,13 @@ export const setAuthToken = (token: string) => {
     console.warn('Not in browser environment, cannot access localStorage');
     return;
   }
-  localStorage.setItem('token', token.trim());
+  if (!token) {
+    console.warn('Attempting to set empty token');
+    return;
+  }
+  const trimmedToken = token.trim();
+  console.log('Setting auth token:', trimmedToken.substring(0, 20) + '...');
+  localStorage.setItem('token', trimmedToken);
 };
 
 // Function to clear auth token
@@ -34,5 +42,6 @@ export const clearAuthToken = () => {
     console.warn('Not in browser environment, cannot access localStorage');
     return;
   }
+  console.log('Clearing auth token');
   localStorage.removeItem('token');
 };

@@ -6,6 +6,7 @@ import com.hellweek.coffee.model.Role;
 import com.hellweek.coffee.model.User;
 import com.hellweek.coffee.repository.UserRepository;
 import com.hellweek.coffee.service.EmailService;
+import com.hellweek.coffee.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -26,31 +27,14 @@ import java.util.Date;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    private final String jwtSecret;
-    private final long jwtExpiration;
-    private Key signingKey;
-
-    public AuthService(
-        UserRepository userRepository,
-        PasswordEncoder passwordEncoder,
-        EmailService emailService,
-        @Value("${jwt.secret}") String jwtSecret,
-        @Value("${jwt.expiration}") long jwtExpiration
-    ) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.emailService = emailService;
-        this.jwtSecret = jwtSecret;
-        this.jwtExpiration = jwtExpiration;
-        byte[] apiKeySecretBytes = Base64.getDecoder().decode(jwtSecret);
-        this.signingKey = new javax.crypto.spec.SecretKeySpec(apiKeySecretBytes, SignatureAlgorithm.HS256.getJcaName());
-    }
+    private final JwtService jwtService;
 
     @PostConstruct
     public void initializeAdmin() {
@@ -120,16 +104,7 @@ public class AuthService {
     }
 
     public String generateToken(User user) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpiration);
-
-        return Jwts.builder()
-            .setSubject(user.getUsername())
-            .claim("role", user.getRole())
-            .setIssuedAt(now)
-            .setExpiration(expiryDate)
-            .signWith(signingKey, SignatureAlgorithm.HS256)
-            .compact();
+        return jwtService.generateToken(user);
     }
 
     @Transactional
@@ -183,5 +158,21 @@ public class AuthService {
     public User getUserById(Long id) {
         return userRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    public String validateToken(String token) {
+        String username = jwtService.extractUsername(token);
+        User user = getUserByUsername(username);
+        
+        if (!jwtService.isTokenValid(token, user)) {
+            throw new BadCredentialsException("Invalid token");
+        }
+        
+        return username;
+    }
+
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+            .orElseThrow(() -> new EntityNotFoundException("User not found"));
     }
 }

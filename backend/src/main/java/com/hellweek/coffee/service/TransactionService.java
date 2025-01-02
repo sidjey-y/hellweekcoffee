@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -18,9 +19,9 @@ public class TransactionService {
     @Transactional
     public Transaction createTransaction(Transaction transaction) {
         // Calculate total amount
-        double total = transaction.getItems().stream()
-            .mapToDouble(TransactionItem::getTotalPrice)
-            .sum();
+        BigDecimal total = transaction.getItems().stream()
+            .map(TransactionItem::getTotalPrice)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
         transaction.setTotalAmount(total);
         
         // Set transaction reference in items

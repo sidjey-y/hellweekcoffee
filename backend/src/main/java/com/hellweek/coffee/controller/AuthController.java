@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3001", allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"}, allowCredentials = "true")
 public class AuthController {
     private final AuthService authService;
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -42,6 +42,35 @@ public class AuthController {
             return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("Invalid username or password"));
+        }
+    }
+
+    @GetMapping("/validate")
+    public ResponseEntity<?> validateToken(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        try {
+            logger.info("Token validation request received");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.error("Token validation failed: Invalid token format");
+                return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse("Invalid token format"));
+            }
+
+            String token = authHeader.substring(7).trim();
+            String username = authService.validateToken(token);
+            User user = authService.getUserByUsername(username);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("user", user);
+            response.put("token", token);
+            
+            logger.info("Token validation successful for user: {}", username);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Token validation failed: {}", e.getMessage());
+            return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("Invalid token"));
         }
     }
 

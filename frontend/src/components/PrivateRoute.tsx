@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
-import { validateToken } from '../store/slices/authSlice';
+import { validateToken, clearError } from '../store/slices/authSlice';
 import { CircularProgress, Box } from '@mui/material';
+import { getAuthToken } from '../utils/auth';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -13,24 +14,27 @@ interface PrivateRouteProps {
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, roles }) => {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, user, loading, error } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, user, loading } = useSelector((state: RootState) => state.auth);
+  const [initialValidationDone, setInitialValidationDone] = useState(false);
 
   useEffect(() => {
-    console.log('PrivateRoute mounted, current state:', {
-      isAuthenticated,
-      user: user ? { ...user, role: user.role } : null,
-      loading,
-      error,
-      path: location.pathname
-    });
+    // Clear any existing errors when component mounts
+    dispatch(clearError());
 
-    // Validate token on mount and when path changes
-    if (!loading && !error) {
+    const token = getAuthToken();
+    
+    // Only validate on initial mount if there's a token
+    if (!initialValidationDone && token) {
+      console.log('Initial token validation');
       dispatch(validateToken());
+      setInitialValidationDone(true);
+    } else if (!token) {
+      setInitialValidationDone(true); // Skip validation if no token
     }
-  }, [location.pathname, dispatch, loading, error]);
+  }, [dispatch, initialValidationDone]);
 
-  if (loading) {
+  // Show loading only during initial validation
+  if (loading && !initialValidationDone) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress />
@@ -38,22 +42,31 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, roles }) => {
     );
   }
 
-  console.log('PrivateRoute check:', {
-    isAuthenticated,
-    userRole: user?.role,
-    requiredRoles: roles,
-    hasRequiredRole: roles ? roles.includes(user?.role || '') : true
-  });
-
-  if (!isAuthenticated) {
-    console.log('Not authenticated, redirecting to login');
+  // If no token or validation failed, redirect to login
+  if (!isAuthenticated || !user) {
+    // Don't log the message if we're already on the login page
+    if (!location.pathname.includes('/login')) {
+      console.log('Not authenticated, redirecting to login');
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (roles && !roles.includes(user?.role || '')) {
-    console.log('User role not allowed:', user?.role);
-    console.log('Allowed roles:', roles);
-    return <Navigate to="/" replace />;
+  // Check role-based access
+  if (roles) {
+    const userRole = user.role.toUpperCase();
+    const allowedRoles = roles.map(role => role.toUpperCase());
+    
+    console.log('Role check:', {
+      userRole,
+      allowedRoles,
+      hasAccess: allowedRoles.includes(userRole)
+    });
+
+    if (!allowedRoles.includes(userRole)) {
+      console.log('User role not allowed:', userRole);
+      console.log('Allowed roles:', allowedRoles);
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;

@@ -1,35 +1,23 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authAPI } from '../../services/api';
 import { setAuthToken, clearAuthToken, getAuthToken } from '../../utils/auth';
-
-interface User {
-  id: number;
-  username: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-}
+import { setLogoutHandler } from '../../services/api';
 
 interface AuthState {
-  user: User | null;
+  user: any | null;
   token: string | null;
+  isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
-  isAuthenticated: boolean;
 }
 
 const initialState: AuthState = {
   user: null,
-  token: getAuthToken(),
+  token: null,
+  isAuthenticated: false,
   loading: false,
   error: null,
-  isAuthenticated: !!getAuthToken(),
 };
-
-interface LoginResponse {
-  user: User;
-  token: string;
-}
 
 export const login = createAsyncThunk(
   'auth/login',
@@ -74,33 +62,14 @@ export const login = createAsyncThunk(
       return { user, token };
     } catch (error: any) {
       console.error('Login error:', error);
-      console.error('Error response:', error.response?.data);
       clearAuthToken();
+      
+      // Return user-friendly error message
       return rejectWithValue(
-        error.response?.data?.message || 
         error.message || 
+        error.response?.data?.message || 
         'Failed to login'
       );
-    }
-  }
-);
-
-export const register = createAsyncThunk(
-  'auth/register',
-  async (request: {
-    username: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    email?: string;
-    phone?: string;
-  }) => {
-    try {
-      const response = await authAPI.register(request);
-      return response;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to register');
     }
   }
 );
@@ -110,24 +79,15 @@ export const validateToken = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = getAuthToken();
-      console.log('Validating token:', {
-        exists: !!token,
-        length: token?.length,
-        value: token ? `${token.substring(0, 20)}...` : 'none'
-      });
       
       if (!token) {
-        console.warn('No token found');
         clearAuthToken();
         return rejectWithValue('No token found');
       }
 
-      console.log('Making validate request...');
       const response = await authAPI.validateToken(token.trim());
-      console.log('Validate response:', response);
 
       if (!response.user || !response.user.role) {
-        console.error('Invalid user data in response:', response);
         clearAuthToken();
         return rejectWithValue('Invalid user data');
       }
@@ -135,30 +95,21 @@ export const validateToken = createAsyncThunk(
       // Normalize role to uppercase and validate it
       const role = response.user.role.toUpperCase();
       if (!['ADMIN', 'MANAGER', 'CASHIER'].includes(role)) {
-        console.error('Invalid role:', role);
         clearAuthToken();
-        return rejectWithValue('Invalid user role');
+        return rejectWithValue(`Invalid role: ${role}`);
       }
 
       const user = {
         ...response.user,
         role
       };
-
-      console.log('Validation successful:', {
-        user,
-        tokenLength: token.length,
-        tokenStored: !!getAuthToken()
-      });
       
       return { user, token };
     } catch (error: any) {
-      console.error('Token validation error:', error);
-      console.error('Error response:', error.response?.data);
       clearAuthToken();
       return rejectWithValue(
-        error.response?.data?.message || 
         error.message || 
+        error.response?.data?.message || 
         'Token validation failed'
       );
     }
@@ -173,12 +124,16 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      state.error = null;
       clearAuthToken();
     },
     setUser: (state, action) => {
       state.user = action.payload;
       state.isAuthenticated = true;
     },
+    clearError: (state) => {
+      state.error = null;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -203,19 +158,6 @@ const authSlice = createSlice({
         state.token = null;
         clearAuthToken();
       })
-      // Register
-      .addCase(register.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(register.fulfilled, (state) => {
-        state.loading = false;
-        state.error = null;
-      })
-      .addCase(register.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || 'Failed to register';
-      })
       // Validate Token
       .addCase(validateToken.pending, (state) => {
         state.loading = true;
@@ -230,7 +172,7 @@ const authSlice = createSlice({
       })
       .addCase(validateToken.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Invalid token';
+        state.error = action.payload as string || action.error.message || 'Invalid token';
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
@@ -239,5 +181,11 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, setUser } = authSlice.actions;
+export const { logout, setUser, clearError } = authSlice.actions;
+
+// Set up the logout handler
+setLogoutHandler(() => {
+  authSlice.caseReducers.logout(initialState);
+});
+
 export default authSlice.reducer;

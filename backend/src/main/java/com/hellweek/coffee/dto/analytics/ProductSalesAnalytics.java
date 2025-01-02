@@ -3,6 +3,7 @@ package com.hellweek.coffee.dto.analytics;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -10,5 +11,5 @@ import lombok.NoArgsConstructor;
 public class ProductSalesAnalytics {
     private String productName;
     private int quantitySold;
-    private double totalRevenue;
+    private BigDecimal totalRevenue;
 }

@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -37,19 +39,21 @@ public class CustomerAnalyticsService {
 
         if (transactions.isEmpty()) {
             analytics.setTotalVisits(0);
-            analytics.setTotalSpent(0.0);
-            analytics.setAverageTransactionValue(0.0);
+            analytics.setTotalSpent(BigDecimal.ZERO);
+            analytics.setAverageTransactionValue(BigDecimal.ZERO);
             analytics.setLoyaltyTier("BRONZE");
             analytics.setLoyaltyPoints(0);
             return analytics;
         }
 
         analytics.setTotalVisits(transactions.size());
-        double totalSpent = transactions.stream()
-                .mapToDouble(Transaction::getTotal)
-                .sum();
+        BigDecimal totalSpent = transactions.stream()
+                .map(Transaction::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         analytics.setTotalSpent(totalSpent);
-        analytics.setAverageTransactionValue(totalSpent / transactions.size());
+        analytics.setAverageTransactionValue(
+            totalSpent.divide(BigDecimal.valueOf(transactions.size()), 2, RoundingMode.HALF_UP)
+        );
         analytics.setLoyaltyTier(calculateLoyaltyTier(totalSpent));
         analytics.setLoyaltyPoints(calculateLoyaltyPoints(transactions));
 
@@ -99,10 +103,10 @@ public class CustomerAnalyticsService {
         return "Night";
     }
 
-    private String calculateLoyaltyTier(double totalSpent) {
-        if (totalSpent >= 5000) return "PLATINUM";
-        if (totalSpent >= 2500) return "GOLD";
-        if (totalSpent >= 1000) return "SILVER";
+    private String calculateLoyaltyTier(BigDecimal totalSpent) {
+        if (totalSpent.compareTo(BigDecimal.valueOf(5000)) >= 0) return "PLATINUM";
+        if (totalSpent.compareTo(BigDecimal.valueOf(2500)) >= 0) return "GOLD";
+        if (totalSpent.compareTo(BigDecimal.valueOf(1000)) >= 0) return "SILVER";
         return "BRONZE";
     }
 
@@ -113,14 +117,9 @@ public class CustomerAnalyticsService {
     }
 
     private int calculatePointsForTransaction(Transaction transaction) {
-        double total = transaction.getTotal();
-        // Base points: 1 point per 20 pesos spent
-        int basePoints = (int) (total / 20);
-
-        // Bonus points for large transactions
-        if (total >= 1000) basePoints *= 2;
-        else if (total >= 500) basePoints += (int)(basePoints * 0.5);
-
-        return basePoints;
+        BigDecimal amount = transaction.getTotalAmount();
+        return amount.divide(BigDecimal.valueOf(100), 0, RoundingMode.DOWN)
+                .multiply(BigDecimal.valueOf(10))
+                .intValue(); // 10 points for every 100 spent
     }
 }

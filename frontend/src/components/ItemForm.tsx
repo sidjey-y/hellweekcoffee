@@ -10,6 +10,7 @@ import {
   FormControlLabel,
   Switch,
   Box,
+  CircularProgress,
 } from '@mui/material';
 import { ItemFormData, ItemType } from '../types/item';
 
@@ -17,9 +18,10 @@ interface ItemFormProps {
   initialData?: ItemFormData;
   onSubmit: (data: ItemFormData) => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
-const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSubmit, onCancel }) => {
+const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSubmit, onCancel, isLoading = false }) => {
   const [formData, setFormData] = React.useState<ItemFormData>({
     name: '',
     description: '',
@@ -227,8 +229,14 @@ const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSubmit, onCancel }) 
         </Grid>
         <Grid item xs={12}>
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button onClick={onCancel}>Cancel</Button>
-            <Button type="submit" variant="contained" color="primary">
+            <Button onClick={onCancel} disabled={isLoading}>Cancel</Button>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              color="primary"
+              disabled={isLoading}
+              startIcon={isLoading ? <CircularProgress size={20} /> : null}
+            >
               {initialData ? 'Update' : 'Create'}
             </Button>
           </Box>

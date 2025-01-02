@@ -10,6 +10,7 @@ com\hellweek\coffee\controller\CustomerController.class
 com\hellweek\coffee\service\CustomizationService.class
 com\hellweek\coffee\controller\CustomerAnalyticsController.class
 com\hellweek\coffee\model\TransactionItem.class
+com\hellweek\coffee\model\Transaction$PaymentMethod.class
 com\hellweek\coffee\repository\CustomizationRepository.class
 com\hellweek\coffee\dto\CustomerAnalytics.class
 com\hellweek\coffee\dto\TransactionAnalytics$ItemSalesData.class
@@ -17,7 +18,6 @@ com\hellweek\coffee\dto\CategoryRequest.class
 com\hellweek\coffee\dto\CustomizationRequest.class
 com\hellweek\coffee\dto\TransactionAnalytics$CustomizationData.class
 com\hellweek\coffee\dto\TransactionRequest.class
-com\hellweek\coffee\model\Transaction$TransactionBuilder.class
 com\hellweek\coffee\dto\ErrorResponse.class
 com\hellweek\coffee\dto\OrderItemRequest.class
 com\hellweek\coffee\model\ItemType.class
@@ -25,7 +25,9 @@ com\hellweek\coffee\model\User$UserBuilder.class
 com\hellweek\coffee\dto\TransactionAnalytics.class
 com\hellweek\coffee\repository\ItemRepository.class
 com\hellweek\coffee\dto\ReceiptResponse$ReceiptItem.class
+com\hellweek\coffee\model\TransactionItem$ItemCustomization.class
 com\hellweek\coffee\model\OrderItem.class
+com\hellweek\coffee\model\Transaction$TransactionStatus.class
 com\hellweek\coffee\repository\UserRepository.class
 com\hellweek\coffee\controller\AuthController.class
 com\hellweek\coffee\dto\CustomizationRequest$CustomizationOptionRequest.class

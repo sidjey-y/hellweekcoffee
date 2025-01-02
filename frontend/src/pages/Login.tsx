@@ -1,146 +1,96 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { login, clearError } from '../store/slices/authSlice';
+import { AppDispatch, RootState } from '../store';
 import {
   Container,
-  Paper,
-  Typography,
+  Box,
   TextField,
   Button,
-  Box,
+  Typography,
   Alert,
-  IconButton,
-  InputAdornment,
+  Paper,
+  CircularProgress
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { login } from '../store/slices/authSlice';
-import { AppDispatch } from '../store';
+import PasswordInput from '../components/PasswordInput';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { error, loading, isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showError, setShowError] = useState(false);
 
-  const handleClickShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
+  useEffect(() => {
+    // Clear any existing errors when component mounts
+    dispatch(clearError());
+  }, [dispatch]);
 
-  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-  };
+  useEffect(() => {
+    if (error) {
+      setShowError(true);
+      const timer = setTimeout(() => {
+        setShowError(false);
+        dispatch(clearError());
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, dispatch]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('User role:', user.role);
+      // Get the intended destination from location state, or use default based on role
+      const from = location.state?.from?.pathname;
+      if (from && from !== '/login') {
+        navigate(from);
+      } else {
+        // Redirect based on role
+        if (user.role === 'ADMIN') {
+          console.log('Redirecting user with role:', user.role);
+          navigate('/admin/dashboard');
+        } else if (user.role === 'CASHIER') {
+          navigate('/pos');
+        } else if (user.role === 'MANAGER') {
+          navigate('/manager/dashboard');
+        }
+      }
+    }
+  }, [isAuthenticated, user, navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setShowError(false);
     
-    // Validate form data
-    if (!formData.username || !formData.password) {
-      setError('Please enter both username and password');
+    if (!username || !password) {
+      setShowError(true);
+      dispatch({ type: 'auth/setError', payload: 'Please enter both username and password' });
       return;
     }
 
-    setLoading(true);
-    console.log('Attempting login with credentials:', { 
-      username: formData.username,
-      passwordLength: formData.password.length 
-    });
-
     try {
+      console.log('Attempting login with credentials:', {
+        username,
+        passwordLength: password.length
+      });
+
       console.log('Dispatching login action...');
-      const result = await dispatch(login({ 
-        username: formData.username.trim(), 
-        password: formData.password 
-      })).unwrap();
+      const result = await dispatch(login({ username, password })).unwrap();
       
       console.log('Raw login result:', result);
       console.log('Login result structure:', {
-        hasToken: !!result?.token,
-        hasUser: !!result?.user,
-        userRole: result?.user?.role,
-        userFields: result?.user ? Object.keys(result.user) : []
+        hasToken: !!result.token,
+        hasUser: !!result.user,
+        userRole: result.user?.role,
+        userFields: result.user ? Object.keys(result.user) : []
       });
-
-      // Validate response data
-      if (!result) {
-        throw new Error('No response data received');
-      }
-      
-      if (!result.token) {
-        throw new Error('No token received');
-      }
-      
-      if (!result.user) {
-        throw new Error('No user data received');
-      }
-      
-      if (!result.user.role) {
-        throw new Error('No user role specified');
-      }
-
-      // Store token
-      localStorage.setItem('token', result.token);
-      
-      // Get the role and ensure it's uppercase
-      const role = result.user.role.toUpperCase();
-      console.log('User role:', role);
-
-      // Redirect based on role
-      console.log('Redirecting user with role:', role);
-      switch (role) {
-        case 'ADMIN':
-          navigate('/admin/dashboard', { replace: true });
-          break;
-        case 'MANAGER':
-          navigate('/manager/dashboard', { replace: true });
-          break;
-        case 'CASHIER':
-          navigate('/pos', { replace: true });
-          break;
-        default:
-          throw new Error(`Unsupported role: ${role}`);
-      }
     } catch (err: any) {
-      console.error('Login error details:', {
-        error: err,
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status
-      });
-      
-      // Clear any existing token
-      localStorage.removeItem('token');
-      
-      // Set appropriate error message
-      if (err.response?.data?.message) {
-        // Use the specific error message from the backend
-        setError(err.response.data.message);
-      } else if (err.message === 'No response data received' || 
-                err.message === 'No token received' || 
-                err.message === 'No user data received') {
-        setError('Server response was incomplete. Please try again.');
-      } else if (err.message === 'No user role specified') {
-        setError('User role not specified. Please contact support.');
-      } else if (!err.response) {
-        setError('Could not connect to server. Please check your connection.');
-      } else {
-        setError('Failed to login. Please try again.');
-      }
-    } finally {
-      setLoading(false);
+      console.error('Login failed:', err);
+      // Error is handled by the reducer
     }
   };
 
@@ -164,14 +114,11 @@ const Login = () => {
             width: '100%',
           }}
         >
-          <Typography component="h1" variant="h5" gutterBottom>
-            HellWeek Coffee
+          <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+            Sign in to HellWeek Coffee
           </Typography>
-          <Typography component="h2" variant="h6" gutterBottom>
-            Sign In
-          </Typography>
-
-          {error && (
+          
+          {showError && error && (
             <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
               {error}
             </Alert>
@@ -187,45 +134,34 @@ const Login = () => {
               name="username"
               autoComplete="username"
               autoFocus
-              value={formData.username}
-              onChange={handleChange}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
+              error={showError && !username}
+              helperText={showError && !username ? 'Username is required' : ''}
             />
-            <TextField
+            <PasswordInput
               margin="normal"
               required
               fullWidth
               name="password"
               label="Password"
-              type={showPassword ? 'text' : 'password'}
               id="password"
               autoComplete="current-password"
-              value={formData.password}
-              onChange={handleChange}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={handleClickShowPassword}
-                      onMouseDown={handleMouseDownPassword}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
+              error={showError && !password}
+              helperText={showError && !password ? 'Password is required' : ''}
             />
             <Button
               type="submit"
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
+              disabled={loading || !username || !password}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
           </Box>
         </Paper>

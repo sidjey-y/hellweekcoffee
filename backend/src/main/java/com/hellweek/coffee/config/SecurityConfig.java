@@ -3,6 +3,7 @@ package com.hellweek.coffee.config;
 import com.hellweek.coffee.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -33,22 +34,36 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
-                .requestMatchers("/api/auth/login").permitAll()
+                // Public endpoints - no authentication needed
+                .requestMatchers(
+                    "/auth/login",
+                    "/auth/validate",
+                    "/error",
+                    "/auth/register"
+                ).permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 
                 // Admin only endpoints
-                .requestMatchers("/api/users/**", "/api/auth/register").hasRole("ADMIN")
+                .requestMatchers(
+                    "/auth/users/**",
+                    "/api/analytics/**"
+                ).hasAuthority("ROLE_ADMIN")
                 
                 // Manager and Admin endpoints
-                .requestMatchers("/api/items/**").hasAnyRole("MANAGER", "ADMIN")
-                .requestMatchers("/api/categories/**").hasAnyRole("MANAGER", "ADMIN")
+                .requestMatchers(
+                    "/api/items/**",
+                    "/api/categories/**"
+                ).hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
                 
-                // Cashier endpoints (GUI will be used)
-                .requestMatchers("/api/orders/**").hasRole("CASHIER")
-                .requestMatchers("/api/customers/search").hasRole("CASHIER")
+                // Cashier endpoints
+                .requestMatchers(
+                    "/api/orders/**",
+                    "/api/customers/search"
+                ).hasAnyAuthority("ROLE_CASHIER", "ROLE_MANAGER", "ROLE_ADMIN")
                 
                 // Member registration (accessible by Manager and Cashier)
-                .requestMatchers("/api/customers/register").hasAnyRole("MANAGER", "CASHIER")
+                .requestMatchers("/api/customers/register")
+                .hasAnyAuthority("ROLE_MANAGER", "ROLE_CASHIER", "ROLE_ADMIN")
                 
                 // Require authentication for all other endpoints
                 .anyRequest().authenticated()
@@ -70,15 +85,22 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:3000",  // Add this line
+            "http://localhost:3000",
             "http://localhost:3001"
         )); 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "X-Requested-With"
+        ));
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-}
+    }
 }

@@ -15,20 +15,6 @@ public class UserService {
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        createDefaultAdminIfNotExists();
-    }
-
-    private void createDefaultAdminIfNotExists() {
-        if (userRepository.findByUsername("admin").isEmpty()) {
-            User admin = new User();
-            admin.setUsername("admin");
-            admin.setPassword(passwordEncoder.encode("HWC@dmin2024!")); // More secure password
-            admin.setFirstName("Admin");
-            admin.setLastName("User");
-            admin.setRole(User.Role.ADMIN);
-            admin.setActive(true);
-            userRepository.save(admin);
-        }
     }
 
     public List<User> getAllUsers() {
