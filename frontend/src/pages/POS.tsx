@@ -193,52 +193,65 @@ const POS = () => {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
+      <AppBar position="static" sx={{ backgroundColor: '#4d351d', color: 'white' }} elevation={1}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography variant="h6" component="div">
-            HellWeek Coffee - POS
+          <Typography variant="h6" component="div" fontWeight="bold">
+             Hell Week Coffee
           </Typography>
           <Button
-            color="inherit"
-            onClick={handleLogout}
-            startIcon={<LogoutIcon />}
+              color="inherit"
+              onClick={handleLogout}
+              startIcon={<LogoutIcon />}
           >
-            Logout
-          </Button>
-        </Toolbar>
+          Logout
+           </Button>
+           </Toolbar>
       </AppBar>
-
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Box sx={{ backgroundColor: '#EEDCC6', padding: 2, textAlign: 'center' }}>
+        <Typography variant="h4" fontWeight="bold" sx={{color: '#230C02'}}>
+          Point-Of-Sale System
+        </Typography>
+      </Box>
+      <Container maxWidth="xl" sx={{minHeight: '100vh', mt: 0, paddingTop: 0, mb: 4, backgroundColor: '#eedcc6'}}>
         <Grid container spacing={3}>
           {/* Left Panel - Order Items */}
           <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column', backgroundColor: '#FFF5E9'}}>
               {/* Customer Type Selection */}
               <Box sx={{ mb: 2 }}>
-                <FormControl fullWidth>
-                  <InputLabel>Customer Type</InputLabel>
-                  <Select
-                    value={isGuestOrder ? 'guest' : 'member'}
-                    onChange={(e) => setIsGuestOrder(e.target.value === 'guest')}
-                  >
-                    <MenuItem value="guest">Guest</MenuItem>
-                    <MenuItem value="member">Member</MenuItem>
-                  </Select>
-                </FormControl>
-                {!isGuestOrder && (
-                  <TextField
-                    fullWidth
-                    label="Membership ID"
-                    value={membershipId}
-                    onChange={(e) => setMembershipId(e.target.value)}
-                    sx={{ mt: 2 }}
-                  />
-                )}
-              </Box>
+  <FormControl fullWidth sx={{ backgroundColor: '#FFF5E9', p: 0, borderRadius: 1 }}>
+    <Typography
+      variant="h6"
+      fontWeight="bold"
+      sx={{ backgroundColor: '#FFF5E9', mb: 1 }}
+    >
+      Customer Type
+    </Typography>
+    <Select
+      value={isGuestOrder ? 'guest' : 'member'}
+      onChange={(e) => setIsGuestOrder(e.target.value === 'guest')}
+      sx={{ mt: 0, backgroundColor: 'white' }}
+    >
+      <MenuItem value="guest">Guest</MenuItem>
+      <MenuItem value="member">Member</MenuItem>
+    </Select>
+  </FormControl>
+  {!isGuestOrder && (
+    <TextField
+      fullWidth
+      label="Membership ID"
+      value={membershipId}
+      onChange={(e) => setMembershipId(e.target.value)}
+      sx={{ mt: 2, backgroundColor: 'white' }}
+    />
+  )}
+</Box>
+
+
 
               {/* Item Type Selection */}
               <Box sx={{ mb: 2 }}>
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6" gutterBottom fontWeight='bold' sx={{ color: '#230c02' }}>
                   Select Item Type
                 </Typography>
                 <Grid container spacing={1}>
@@ -246,6 +259,7 @@ const POS = () => {
                     <Grid item key={type}>
                       <Button
                         variant={selectedType === type ? 'contained' : 'outlined'}
+                    
                         onClick={() => handleTypeSelect(type)}
                       >
                         {type.replace(/_/g, ' ')}
@@ -258,7 +272,7 @@ const POS = () => {
               {/* Item Selection */}
               {selectedType && (
                 <Box sx={{ mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom fontWeight='bold' sx={{ color: '#230c02' }}>
                     Select Item
                   </Typography>
                   <Grid container spacing={2}>
@@ -270,7 +284,7 @@ const POS = () => {
                             fullWidth
                             variant="outlined"
                             onClick={() => handleItemSelect(item)}
-                            sx={{ height: '100%', textAlign: 'left', justifyContent: 'flex-start' }}
+                            sx={{ height: '100%', textAlign: 'left', justifyContent: 'flex-start', backgroundColor: 'white' }}
                           >
                             <Box>
                               <Typography variant="subtitle1">{item.name}</Typography>
@@ -292,8 +306,8 @@ const POS = () => {
 
           {/* Right Panel - Order Summary */}
           <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' , backgroundColor: '#FFF5E9'}}>
+              <Typography variant="h6" gutterBottom fontWeight='bold' sx={{ color: '#230c02' }}>
                 Order Summary
               </Typography>
               <List sx={{ flexGrow: 1, overflow: 'auto' }}>
@@ -347,7 +361,7 @@ const POS = () => {
                 ))}
               </List>
               <Box sx={{ mt: 2 }}>
-                <Typography variant="h6" align="right" gutterBottom>
+                <Typography variant="h6" align="right" gutterBottom sx={{ color: '#230c02' }}>
                   Total: ₱{calculateTotal()}
                 </Typography>
                 <Button
