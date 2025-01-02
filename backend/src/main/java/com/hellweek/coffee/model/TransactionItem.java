@@ -2,59 +2,48 @@ package com.hellweek.coffee.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
 @Entity
 @Table(name = "transaction_items")
+@Data
+@NoArgsConstructor
 public class TransactionItem {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
+    
     @ManyToOne
-    @JoinColumn(name = "transaction_id", nullable = false)
+    @JoinColumn(name = "transaction_id")
     private Transaction transaction;
-
+    
     @ManyToOne
-    @JoinColumn(name = "item_id", nullable = false)
+    @JoinColumn(name = "item_id")
     private Item item;
-
-    @Column(nullable = false)
+    
     private int quantity;
-
-    private String size; // For drinks
-
-    @Column(name = "unit_price", nullable = false)
-    private double unitPrice;
-
-    @OneToMany(mappedBy = "transactionItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    
+    private String size;
+    
+    @ElementCollection
+    @CollectionTable(
+        name = "transaction_item_customizations",
+        joinColumns = @JoinColumn(name = "transaction_item_id")
+    )
     private List<ItemCustomization> customizations = new ArrayList<>();
-
-    public double getSubtotal() {
-        double customizationsTotal = customizations.stream()
-            .flatMap(customization -> customization.getSelectedOptions().stream())
-            .mapToDouble(CustomizationOption::getPrice)
-            .sum();
-        return (unitPrice + customizationsTotal) * quantity;
-    }
-
-    public boolean hasSameCustomizations(TransactionItem other) {
-        if (size != null ? !size.equals(other.size) : other.size != null) {
-            return false;
-        }
-
-        if (customizations.size() != other.customizations.size()) {
-            return false;
-        }
-
-        // Compare customizations
-        return customizations.stream().allMatch(customization ->
-            other.customizations.stream().anyMatch(otherCustomization ->
-                customization.getCustomization().equals(otherCustomization.getCustomization()) &&
-                customization.getSelectedOptions().equals(otherCustomization.getSelectedOptions())
-            )
-        );
+    
+    private double itemPrice;
+    
+    private double totalPrice;
+    
+    @Embeddable
+    @Data
+    @NoArgsConstructor
+    public static class ItemCustomization {
+        private String name;
+        private String option;
+        private double price;
     }
 }

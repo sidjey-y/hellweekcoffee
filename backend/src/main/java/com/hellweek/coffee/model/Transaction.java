@@ -1,72 +1,42 @@
 package com.hellweek.coffee.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(name = "transactions")
+@Data
+@NoArgsConstructor
 public class Transaction {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
+    
     @ManyToOne
-    @JoinColumn(name = "customer_id", nullable = false)
+    @JoinColumn(name = "customer_id")
     private Customer customer;
-
-    @ManyToOne
-    @JoinColumn(name = "cashier_id")
-    private User cashier;
-
-    @Column(nullable = false)
-    private LocalDateTime transactionDate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TransactionStatus status = TransactionStatus.PENDING;
-
-    @Column(nullable = false)
-    private double total;
-
-    @Enumerated(EnumType.STRING)
-    private PaymentMethod paymentMethod;
-
+    
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TransactionItem> items = new ArrayList<>();
-
-    @PrePersist
-    protected void onCreate() {
-        if (transactionDate == null) {
-            transactionDate = LocalDateTime.now();
-        }
-    }
-
-    public void addItem(TransactionItem item) {
-        items.add(item);
-        item.setTransaction(this);
-        recalculateTotal();
-    }
-
-    public void removeItem(TransactionItem item) {
-        items.remove(item);
-        item.setTransaction(null);
-        recalculateTotal();
-    }
-
-    private void recalculateTotal() {
-        this.total = items.stream()
-            .mapToDouble(item -> item.getUnitPrice() * item.getQuantity())
-            .sum();
+    
+    private LocalDateTime transactionDate = LocalDateTime.now();
+    
+    private double totalAmount;
+    
+    @Enumerated(EnumType.STRING)
+    private TransactionStatus status = TransactionStatus.PENDING;
+    
+    private String membershipId;
+    
+    private boolean isGuestOrder;
+    
+    public enum TransactionStatus {
+        PENDING,
+        COMPLETED,
+        CANCELLED
     }
 }
