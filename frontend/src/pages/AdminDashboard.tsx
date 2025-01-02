@@ -7,17 +7,29 @@ import {
   Typography,
   Box,
   Button,
+  AppBar,
+  Toolbar,
+  IconButton,
 } from '@mui/material';
 import {
   PeopleAlt as PeopleIcon,
   Inventory as InventoryIcon,
   Store as StoreIcon,
   ShoppingCart as POSIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { logout } from '../store/slices/authSlice';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+  };
 
   const quickActions = [
     {
@@ -51,65 +63,82 @@ const AdminDashboard: React.FC = () => {
   ];
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom component="h1">
-        Admin Dashboard
-      </Typography>
+    <>
+      <AppBar position="static" color="default" elevation={1}>
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Typography variant="h6" component="div">
+            HellWeek Coffee
+          </Typography>
+          <Button
+            color="inherit"
+            onClick={handleLogout}
+            startIcon={<LogoutIcon />}
+          >
+            Logout
+          </Button>
+        </Toolbar>
+      </AppBar>
       
-      <Grid container spacing={3}>
-        {quickActions.map((action, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card 
-              sx={{ 
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                cursor: 'pointer',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: 3,
-                  transition: 'all 0.3s ease-in-out',
-                },
-              }}
-              onClick={() => navigate(action.path)}
-            >
-              <CardContent>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 2,
-                  }}
-                >
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h4" gutterBottom component="h1">
+          Admin Dashboard
+        </Typography>
+        
+        <Grid container spacing={3}>
+          {quickActions.map((action, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card 
+                sx={{ 
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 3,
+                    transition: 'all 0.3s ease-in-out',
+                  },
+                }}
+                onClick={() => navigate(action.path)}
+              >
+                <CardContent>
                   <Box
                     sx={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: `${action.color}15`,
-                      color: action.color,
-                      mb: 2,
+                      gap: 2,
                     }}
                   >
-                    {action.icon}
+                    <Box
+                      sx={{
+                        width: 80,
+                        height: 80,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: `${action.color}15`,
+                        color: action.color,
+                        mb: 2,
+                      }}
+                    >
+                      {action.icon}
+                    </Box>
+                    <Typography variant="h6" component="h2" align="center">
+                      {action.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" align="center">
+                      {action.description}
+                    </Typography>
                   </Box>
-                  <Typography variant="h6" component="h2" align="center">
-                    {action.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" align="center">
-                    {action.description}
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Container>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+    </>
   );
 };
 

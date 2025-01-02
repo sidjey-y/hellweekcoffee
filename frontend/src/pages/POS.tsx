@@ -22,13 +22,19 @@ import {
   IconButton,
   Divider,
   Chip,
+  AppBar,
+  Toolbar,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
   Delete as DeleteIcon,
   Receipt as ReceiptIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { logout } from '../store/slices/authSlice';
 import { useSnackbar } from 'notistack';
 import { Item, ItemType, ITEM_TYPES } from '../types/item';
 import { Category } from '../types/category';
@@ -48,6 +54,9 @@ interface OrderItem {
 }
 
 const POS = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { enqueueSnackbar } = useSnackbar();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [selectedType, setSelectedType] = useState<ItemType | ''>('');
@@ -64,7 +73,6 @@ const POS = () => {
   const [isCustomizeDialogOpen, setIsCustomizeDialogOpen] = useState(false);
   const [isGuestOrder, setIsGuestOrder] = useState(true);
   const [membershipId, setMembershipId] = useState('');
-  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     fetchCategories();
@@ -178,220 +186,242 @@ const POS = () => {
     setMembershipId('');
   };
 
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+  };
+
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Grid container spacing={3}>
-        {/* Left Panel - Order Items */}
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' }}>
-            {/* Customer Type Selection */}
-            <Box sx={{ mb: 2 }}>
-              <FormControl fullWidth>
-                <InputLabel>Customer Type</InputLabel>
-                <Select
-                  value={isGuestOrder ? 'guest' : 'member'}
-                  onChange={(e) => setIsGuestOrder(e.target.value === 'guest')}
-                >
-                  <MenuItem value="guest">Guest</MenuItem>
-                  <MenuItem value="member">Member</MenuItem>
-                </Select>
-              </FormControl>
-              {!isGuestOrder && (
-                <TextField
-                  fullWidth
-                  label="Membership ID"
-                  value={membershipId}
-                  onChange={(e) => setMembershipId(e.target.value)}
-                  sx={{ mt: 2 }}
-                />
-              )}
-            </Box>
+    <>
+      <AppBar position="static" color="default" elevation={1}>
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Typography variant="h6" component="div">
+            HellWeek Coffee - POS
+          </Typography>
+          <Button
+            color="inherit"
+            onClick={handleLogout}
+            startIcon={<LogoutIcon />}
+          >
+            Logout
+          </Button>
+        </Toolbar>
+      </AppBar>
 
-            {/* Item Type Selection */}
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Select Item Type
-              </Typography>
-              <Grid container spacing={1}>
-                {Object.values(ITEM_TYPES).map((type) => (
-                  <Grid item key={type}>
-                    <Button
-                      variant={selectedType === type ? 'contained' : 'outlined'}
-                      onClick={() => handleTypeSelect(type)}
-                    >
-                      {type.replace(/_/g, ' ')}
-                    </Button>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        <Grid container spacing={3}>
+          {/* Left Panel - Order Items */}
+          <Grid item xs={12} md={8}>
+            <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' }}>
+              {/* Customer Type Selection */}
+              <Box sx={{ mb: 2 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Customer Type</InputLabel>
+                  <Select
+                    value={isGuestOrder ? 'guest' : 'member'}
+                    onChange={(e) => setIsGuestOrder(e.target.value === 'guest')}
+                  >
+                    <MenuItem value="guest">Guest</MenuItem>
+                    <MenuItem value="member">Member</MenuItem>
+                  </Select>
+                </FormControl>
+                {!isGuestOrder && (
+                  <TextField
+                    fullWidth
+                    label="Membership ID"
+                    value={membershipId}
+                    onChange={(e) => setMembershipId(e.target.value)}
+                    sx={{ mt: 2 }}
+                  />
+                )}
+              </Box>
 
-            {/* Item Selection */}
-            {selectedType && (
+              {/* Item Type Selection */}
               <Box sx={{ mb: 2 }}>
                 <Typography variant="h6" gutterBottom>
-                  Select Item
+                  Select Item Type
                 </Typography>
-          <Grid container spacing={2}>
-                  {items
-                    .filter((item) => item.type === selectedType)
-                    .map((item) => (
-                      <Grid item key={item.code} xs={12} sm={6} md={4}>
-                        <Button
-                          fullWidth
-                          variant="outlined"
-                          onClick={() => handleItemSelect(item)}
-                          sx={{ height: '100%', textAlign: 'left', justifyContent: 'flex-start' }}
-                        >
-                          <Box>
-                            <Typography variant="subtitle1">{item.name}</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                      {item.description}
-                    </Typography>
-                            <Typography variant="body2" color="primary">
-                              ₱{item.basePrice}
-                    </Typography>
-                          </Box>
+                <Grid container spacing={1}>
+                  {Object.values(ITEM_TYPES).map((type) => (
+                    <Grid item key={type}>
+                      <Button
+                        variant={selectedType === type ? 'contained' : 'outlined'}
+                        onClick={() => handleTypeSelect(type)}
+                      >
+                        {type.replace(/_/g, ' ')}
                       </Button>
-              </Grid>
-            ))}
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+
+              {/* Item Selection */}
+              {selectedType && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Select Item
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {items
+                      .filter((item) => item.type === selectedType)
+                      .map((item) => (
+                        <Grid item key={item.code} xs={12} sm={6} md={4}>
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            onClick={() => handleItemSelect(item)}
+                            sx={{ height: '100%', textAlign: 'left', justifyContent: 'flex-start' }}
+                          >
+                            <Box>
+                              <Typography variant="subtitle1">{item.name}</Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {item.description}
+                              </Typography>
+                              <Typography variant="body2" color="primary">
+                                ₱{item.basePrice}
+                              </Typography>
+                            </Box>
+                          </Button>
+                        </Grid>
+                      ))}
+                  </Grid>
+                </Box>
+              )}
+            </Paper>
           </Grid>
+
+          {/* Right Panel - Order Summary */}
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="h6" gutterBottom>
+                Order Summary
+              </Typography>
+              <List sx={{ flexGrow: 1, overflow: 'auto' }}>
+                {orderItems.map((orderItem, index) => (
+                  <React.Fragment key={`${orderItem.item.code}-${index}`}>
+                    <ListItem>
+                      <ListItemText
+                        primary={orderItem.item.name}
+                        secondary={
+                          <>
+                            <Typography variant="body2">
+                              Size: {orderItem.size}
+                            </Typography>
+                            {orderItem.customizations.map((customization, i) => (
+                              <Typography key={i} variant="body2">
+                                {customization.name}: {customization.option} (+₱{customization.price})
+                              </Typography>
+                            ))}
+                            <Typography variant="body2">
+                              ₱{orderItem.totalPrice}
+                            </Typography>
+                          </>
+                        }
+                      />
+                      <ListItemSecondaryAction>
+                        <IconButton
+                          edge="end"
+                          onClick={() => handleUpdateQuantity(index, false)}
+                        >
+                          <RemoveIcon />
+                        </IconButton>
+                        <Typography component="span" sx={{ mx: 1 }}>
+                          {orderItem.quantity}
+                        </Typography>
+                        <IconButton
+                          edge="end"
+                          onClick={() => handleUpdateQuantity(index, true)}
+                        >
+                          <AddIcon />
+                        </IconButton>
+                        <IconButton
+                          edge="end"
+                          onClick={() => handleRemoveOrderItem(index)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                    <Divider />
+                  </React.Fragment>
+                ))}
+              </List>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="h6" align="right" gutterBottom>
+                  Total: ₱{calculateTotal()}
+                </Typography>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  startIcon={<ReceiptIcon />}
+                  onClick={handleCompleteTransaction}
+                  disabled={orderItems.length === 0}
+                >
+                  Complete Transaction
+                </Button>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
+
+        {/* Customize Dialog */}
+        <Dialog 
+          open={isCustomizeDialogOpen}
+          onClose={() => setIsCustomizeDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            Customize {selectedItem?.name}
+          </DialogTitle>
+          <DialogContent>
+            {selectedItem?.sizePrices && Object.keys(selectedItem.sizePrices).length > 0 && (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Size</InputLabel>
+                <Select
+                  value={size}
+                  onChange={(e) => setSize(e.target.value)}
+                >
+                  {Object.entries(selectedItem.sizePrices).map(([sizeOption, price]) => (
+                    <MenuItem key={sizeOption} value={sizeOption}>
+                      {sizeOption} - ₱{price}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+            
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Quantity</InputLabel>
+              <TextField
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                inputProps={{ min: 1 }}
+              />
+            </FormControl>
+
+            {selectedItem?.availableCustomizations && selectedItem.availableCustomizations.length > 0 && (
+              <Box>
+                <Typography variant="subtitle1" gutterBottom>
+                  Customizations
+                </Typography>
+                {/* Add customization options here */}
               </Box>
             )}
-          </Paper>
-        </Grid>
-
-        {/* Right Panel - Order Summary */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="h6" gutterBottom>
-              Order Summary
-              </Typography>
-            <List sx={{ flexGrow: 1, overflow: 'auto' }}>
-              {orderItems.map((orderItem, index) => (
-                <React.Fragment key={`${orderItem.item.code}-${index}`}>
-                  <ListItem>
-                  <ListItemText
-                      primary={orderItem.item.name}
-                    secondary={
-                      <>
-                          <Typography variant="body2">
-                            Size: {orderItem.size}
-                          </Typography>
-                          {orderItem.customizations.map((customization, i) => (
-                            <Typography key={i} variant="body2">
-                              {customization.name}: {customization.option} (+₱{customization.price})
-                          </Typography>
-                        ))}
-                          <Typography variant="body2">
-                            ₱{orderItem.totalPrice}
-                          </Typography>
-                      </>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                        onClick={() => handleUpdateQuantity(index, false)}
-                      >
-                        <RemoveIcon />
-                      </IconButton>
-                      <Typography component="span" sx={{ mx: 1 }}>
-                        {orderItem.quantity}
-                      </Typography>
-                      <IconButton
-                        edge="end"
-                        onClick={() => handleUpdateQuantity(index, true)}
-                      >
-                        <AddIcon />
-                      </IconButton>
-                      <IconButton
-                        edge="end"
-                        onClick={() => handleRemoveOrderItem(index)}
-                      >
-                        <DeleteIcon />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-                  <Divider />
-                </React.Fragment>
-              ))}
-            </List>
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="h6" align="right" gutterBottom>
-                Total: ₱{calculateTotal()}
-              </Typography>
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"
-                startIcon={<ReceiptIcon />}
-                onClick={handleCompleteTransaction}
-                disabled={orderItems.length === 0}
-              >
-                Complete Transaction
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Customize Dialog */}
-      <Dialog 
-        open={isCustomizeDialogOpen}
-        onClose={() => setIsCustomizeDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          Customize {selectedItem?.name}
-        </DialogTitle>
-        <DialogContent>
-          {selectedItem?.sizePrices && Object.keys(selectedItem.sizePrices).length > 0 && (
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Size</InputLabel>
-              <Select
-                value={size}
-                onChange={(e) => setSize(e.target.value)}
-              >
-                {Object.entries(selectedItem.sizePrices).map(([sizeOption, price]) => (
-                  <MenuItem key={sizeOption} value={sizeOption}>
-                    {sizeOption} - ₱{price}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-          
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Quantity</InputLabel>
-            <TextField
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              inputProps={{ min: 1 }}
-            />
-          </FormControl>
-
-          {selectedItem?.availableCustomizations && selectedItem.availableCustomizations.length > 0 && (
-            <Box>
-              <Typography variant="subtitle1" gutterBottom>
-                Customizations
-              </Typography>
-              {/* Add customization options here */}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsCustomizeDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleAddToOrder} variant="contained" color="primary">
-            Add to Order
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsCustomizeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddToOrder} variant="contained" color="primary">
+              Add to Order
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    </>
   );
 };
 
