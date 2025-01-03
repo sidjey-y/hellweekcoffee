@@ -22,6 +22,7 @@ import {
   Divider,
   AppBar,
   Toolbar,
+  colors,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -347,7 +348,7 @@ const POS = () => {
         <!DOCTYPE html>
         <html>
           <head>
-            <title>Receipt - HellWeek Coffee</title>
+            <title>Receipt - Hell Week Coffee</title>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
@@ -364,7 +365,7 @@ const POS = () => {
           </head>
           <body>
             <div>
-              <h2 style="text-align: center; margin-bottom: 10px;">HellWeek Coffee</h2>
+              <h2 style="text-align: center; margin-bottom: 10px;">Hell Week Coffee</h2>
               <p style="text-align: center; margin: 5px 0;">${new Date().toLocaleString()}</p>
               <p style="text-align: center; margin: 5px 0;">${isGuestOrder ? `Guest: ${customerInfo.firstName}` : `Member ID: ${customerInfo.memberId}`}</p>
               
@@ -375,7 +376,7 @@ const POS = () => {
               <h3 style="text-align: right; margin: 10px 0;">Total Amount: ₱${calculateTotal().toFixed(2)}</h3>
               
               <div style="text-align: center; margin-top: 30px;">
-                <p style="margin: 5px 0;">Thank you for visiting HellWeek Coffee!</p>
+                <p style="margin: 5px 0;">Thank you for visiting Hell Week Coffee!</p>
                 <p style="margin: 5px 0;">Please come again!</p>
               </div>
             </div>
@@ -904,11 +905,19 @@ const POS = () => {
         `}
       </style>
 
-      <AppBar position="static" color="default" elevation={1}>
+      <AppBar position="static" sx={{ backgroundColor: '#4d351d', color: 'white' }} elevation={1}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography variant="h6" component="div">
-            HellWeek Coffee - POS
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box
+                      component="img"
+                      src="/assets/logo2.png"
+                      alt="Hell Week Coffee Logo"
+                      sx={{ height: 50 }} 
+                    />
+          <Typography variant="h6" component="div" fontWeight='bold'>
+            Hell Week Coffee
           </Typography>
+          </Box>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
               color="inherit"
@@ -928,46 +937,76 @@ const POS = () => {
         </Toolbar>
       </AppBar>
 
+      <Box sx={{ backgroundColor: '#EEDCC6', minHeight: '100vh', mt: 0, paddingTop: 0.5 }}>
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
         {!isTransactionStarted ? (
           // Initial Transaction Screen
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', mt: 4 }}>
+          <Box sx={{ justifyContent: 'center', display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', mt: 4 }}>
+            <Typography variant='h2'sx={{fontWeight: 'bold', color:'#230c02', mb:3}}>Point-of-Sale System</Typography>
+            <Box sx={{ display: 'flex' , flexDirection:'row', gap: 3 }}>
+            <Button
+            variant="outlined"
+            size="large"
+            onClick={handleCancelTransaction}
+            sx={{
+              width: '300px',
+              height: '200px',
+              backgroundColor: '#FFF5E9',
+              borderColor: '#4d351d',
+              color: '#230c02',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+          <CancelIcon sx={{ fontSize: '70px', color: '#4d351d', mb: 1 }} />
+          Cancel Transaction
+          </Button>
             <Button
               variant="contained"
-              color="primary"
               size="large"
-              startIcon={<ShoppingCartIcon />}
               onClick={handleNewTransaction}
-              sx={{ width: '300px', height: '60px' }}
+              sx={{
+                width: '300px',
+                height: '200px',
+                backgroundColor: '#4d351d',
+                color: 'white',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
+              <ShoppingCartIcon sx={{ fontSize: '70px', color: 'white', mb: 1 }} />
               New Transaction
             </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              size="large"
-              startIcon={<CancelIcon />}
-              onClick={handleCancelTransaction}
-              sx={{ width: '300px', height: '60px' }}
-            >
-              Cancel Transaction
-            </Button>
-          </Box>
+        </Box>
+        </Box>
         ) : (
+          
           // Main POS Interface
+          
+      <Container maxWidth="xl" sx={{ mt: 0, mb: 4 }}>
+          <Typography
+            variant="h4"
+            fontWeight="bold"
+            sx={{ color: '#230c02', textAlign: 'center', mb: 4 }}
+          >
+            Point-of-Sale System
+          </Typography>
           <Grid container spacing={3}>
             {/* Left Panel - Menu Selection */}
             <Grid item xs={12} md={8}>
               <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' }}>
                 {/* Customer Type Selection */}
                 <Box sx={{ mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom fontWeight='bold' sx={{color:'#230c02'}}>
                     Customer Information
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
                       <FormControl fullWidth size="small">
-                        <InputLabel>Customer Type</InputLabel>
                         <Select
                           value={isGuestOrder ? 'guest' : 'member'}
                           onChange={(e) => setIsGuestOrder(e.target.value === 'guest')}
@@ -995,7 +1034,7 @@ const POS = () => {
 
                 {/* Item Type Selection */}
                 <Box sx={{ mb: 2 }}>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom fontWeight='bold' sx={{color:'#230c02'}}>
                     Select Item Type
                   </Typography>
                   <Grid container spacing={1}>
@@ -1016,7 +1055,7 @@ const POS = () => {
                 {/* Item Selection */}
                 {selectedType && (
                   <Box sx={{ mb: 2, flex: 1, overflow: 'auto' }}>
-                    <Typography variant="h6" gutterBottom>
+                    <Typography variant="h6" gutterBottom fontWeight='bold' sx={{color:'#230c02'}}> 
                       Select Item
                     </Typography>
                     <Grid container spacing={2}>
@@ -1059,7 +1098,7 @@ const POS = () => {
             {/* Right Panel - Order Summary */}
             <Grid item xs={12} md={4}>
               <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6" gutterBottom fontWeight='bold' sx={{color:'#230c02'}}>
                   Order Summary
                 </Typography>
                 
@@ -1143,6 +1182,7 @@ const POS = () => {
               </Paper>
             </Grid>
           </Grid>
+          </Container>
         )}
 
         {/* Customization Dialog */}
@@ -1307,6 +1347,7 @@ const POS = () => {
         {/* Customer Information Dialog */}
         {renderCustomerInfoDialog()}
       </Container>
+      </Box>
     </>
   );
 };

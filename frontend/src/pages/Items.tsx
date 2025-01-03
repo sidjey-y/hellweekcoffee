@@ -33,6 +33,7 @@ import {
   Logout as LogoutIcon,
   Upload as UploadIcon,
   Settings as SettingsIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -776,72 +777,79 @@ const Items = () => {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
+      <AppBar position="static" color="default" elevation={1} sx={{ backgroundColor: '#4d351d' }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography variant="h6" component="div">
-            HellWeek Coffee - Item Management
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Search>
-              <SearchIconWrapper>
-                <SearchIcon />
-              </SearchIconWrapper>
-              <StyledInputBase
-                placeholder="Search items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </Search>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Type</InputLabel>
-                <Select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  label="Type"
-                >
-                  <MenuItem value="">All</MenuItem>
-                  {Object.values(ITEM_TYPES).map((type) => (
-                    <MenuItem key={type} value={type}>
-                      {type.replace(/_/g, ' ')}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  label="Category"
-                >
-                  <MenuItem value="">All</MenuItem>
-                  {typeFilter && categories
-                    .filter(category => category.type === typeFilter)
-                    .map((category) => (
-                      <MenuItem key={category.id} value={category.id}>
-                        {category.name}
-                      </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-            <Button
-              color="inherit"
-              onClick={handleLogout}
-              startIcon={<LogoutIcon />}
-            >
-              Logout
-            </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <img src="/assets/logo2.png" alt="Hell Week Coffee Logo" style={{ height: '50px', width: '50px' }} />
+            <Typography variant="h6" component="div" fontWeight="bold" color="white">
+              Hell Week Coffee
+            </Typography>
           </Box>
-        </Toolbar>
-      </AppBar>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Search
+          sx={{
+            backgroundColor: 'white',
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: 'white',  // Retain white color on hover
+            },
+          }}
+        >
+          <SearchIconWrapper>
+            <SearchIcon />
+          </SearchIconWrapper>
+          <StyledInputBase
+            placeholder="Search items..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{ color: 'black' }}  // Set the input text color to black
+          />
+        </Search>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel sx={{ color: 'primary' }}>Type</InputLabel>
+          <Select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            label="Type"
+            sx={{
+              color: typeFilter === '' ? '#230c02' : 'inherit',
+              backgroundColor: 'white',
+            }}
+          >
+            <MenuItem value="">All</MenuItem>
+            {Object.values(ITEM_TYPES).map((type) => (
+              <MenuItem key={type} value={type}>
+                {type.replace(/_/g, ' ')}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h4" component="h1">
-            Items
+          <Button
+            color="inherit"
+            onClick={handleLogout}
+            startIcon={<LogoutIcon />}
+            sx={{ color: 'white' }} // Set the button text color to white
+          >
+            Logout
+          </Button>
+        </Box>
+      </Toolbar>
+      </AppBar>
+      
+      <Box sx={{backgroundColor: '#EEDCC6', minHeight: '100vh', mt: 0, paddingTop: 0.5}}>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+          <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <IconButton onClick={() => navigate('/admin/dashboard')} sx={{ mr: 2 }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4" component="h1" fontWeight="bold" color="#230c02">
+              Item Management
           </Typography>
+        </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <input
               type="file"
@@ -851,6 +859,7 @@ const Items = () => {
               onChange={handleFileSelect}
             />
             <Button
+              sx={{backgroundColor: '#4d351d'}}
               variant="contained"
               color="primary"
               startIcon={<UploadIcon />}
@@ -860,6 +869,7 @@ const Items = () => {
               {isImporting ? 'Importing...' : 'Import CSV'}
             </Button>
             <Button
+              sx={{backgroundColor: '#4d351d'}}
               variant="contained"
               color="primary"
               startIcon={<AddIcon />}
@@ -874,16 +884,16 @@ const Items = () => {
           <StyledTableContainer>
             <Table stickyHeader>
               <TableHead>
-                <TableRow>
-                  <TableCell>Code</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Base Price</TableCell>
-                  <TableCell>Size Prices</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Actions</TableCell>
-                  <TableCell>Customizations</TableCell>
+                <TableRow sx={{backgroundColor: '#4d351d'}}>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Code</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Type</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Base Price</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Size Prices</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Customizations</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1174,6 +1184,7 @@ const Items = () => {
           </DialogActions>
         </Dialog>
       </Container>
+      </Box>
     </>
   );
 };

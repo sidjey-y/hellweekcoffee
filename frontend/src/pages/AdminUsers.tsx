@@ -24,16 +24,21 @@ import {
   Box,
   Snackbar,
   Alert,
+  AppBar,
+  Toolbar
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   ArrowBack as ArrowBackIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { userAPI } from '../services/api';
 import PasswordInput from '../components/PasswordInput';
+import { useDispatch } from 'react-redux';
+import { logout } from '../store/slices/authSlice';
 
 interface User {
   id: number;
@@ -60,6 +65,13 @@ interface UserData {
 
 const AdminUsers = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleLogout = () => {
+      dispatch(logout());
+      navigate('/login');
+    };
+
   const [users, setUsers] = useState<User[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -193,7 +205,7 @@ const AdminUsers = () => {
     }
 
     // Check for password length
-    if (formData.password.length < 😎 {
+    if (formData.password.length < 8 ) {
         newErrors.password = 'Password must be at least 8 characters long';
     }
 
@@ -280,19 +292,45 @@ const AdminUsers = () => {
   };
 
   return (
+    <>
+    <AppBar position="static" sx={{ backgroundColor: '#4d351d', color: 'white' }} elevation={1}>
+      <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            component="img"
+            src="/assets/logo2.png"
+            alt="Hell Week Coffee Logo"
+            sx={{ height: 50 }} 
+          />
+          <Typography variant="h6" component="div" fontWeight="bold">
+            Hell Week Coffee
+          </Typography>
+        </Box>
+        <Button
+          color="inherit"
+          onClick={handleLogout}
+          startIcon={<LogoutIcon />}
+        >
+          Logout
+        </Button>
+      </Toolbar>
+    </AppBar>
+    
+    <Box sx={{backgroundColor: '#EEDCC6', minHeight: '100vh', mt: 0, paddingTop: 4}}>
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
         <IconButton onClick={() => navigate('/admin/dashboard')} sx={{ mr: 2 }}>
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h4" component="h1">
+        <Typography variant="h4" component="h1" sx={{fontWeight: 'bold', color: '#230c02'}}>
           Manage Users
         </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
-          sx={{ ml: 'auto' }}
+          sx={{ ml: 'auto', backgroundColor: '#4d351d'}}
+
         >
           Add New User
         </Button>
@@ -301,14 +339,14 @@ const AdminUsers = () => {
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell>Username</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
+          <TableRow sx={{backgroundColor: '#4d351d'}}>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Username</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Phone</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Role</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Actions</TableCell>
+          </TableRow>
           </TableHead>
           <TableBody>
             {users.map((user) => (
@@ -460,6 +498,8 @@ const AdminUsers = () => {
         </Alert>
       </Snackbar>
     </Container>
+    </Box>
+    </>
   );
 };
 

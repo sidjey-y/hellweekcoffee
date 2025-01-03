@@ -84,31 +84,37 @@ const CustomerManagement = () => {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
+      <AppBar position="static" color="default" sx={{ backgroundColor: '#4d351d' }} elevation={1}>
         <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={() => navigate('/pos')}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" sx={{ ml: 2 }}>
-            Customer Management
+          <img src="/assets/logo2.png" alt="Hell Week Coffee Logo" style={{ height: 50, marginRight: 10 }} />
+          <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+            Hell Week Coffee
           </Typography>
         </Toolbar>
       </AppBar>
-
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        <Paper sx={{ p: 2 }}>
+  
+      <Container maxWidth="xl" sx={{ paddingTop: 4, paddingBottom: 4, mt: 0, mb: 0, backgroundColor:'#EEDCC6'}}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <IconButton edge="start" color="inherit" onClick={() => navigate('/pos')}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h6" sx={{ ml: 1, fontWeight: 'bold' }}>
+            Customer Management
+          </Typography>
+        </Box>
+  
+        <Paper sx={{ p: 0 }}>
           <TableContainer>
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell>Customer ID</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Customer Type</TableCell>
-                  <TableCell>Membership ID</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Phone</TableCell>
-                  <TableCell>Birth Date</TableCell>
-                  <TableCell>Actions</TableCell>
+                <TableRow sx={{backgroundColor: '#4d351d'}}>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Customer ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Customer Type</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Membership ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Phone</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' , color: 'white'}}>Birth Date</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -127,21 +133,13 @@ const CustomerManagement = () => {
                     <TableCell>{customer.email || '-'}</TableCell>
                     <TableCell>{customer.phone || '-'}</TableCell>
                     <TableCell>{customer.dateOfBirth ? new Date(customer.dateOfBirth).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell>
-                      <Button
-                        startIcon={<VisibilityIcon />}
-                        onClick={() => handleViewTransactions(customer)}
-                      >
-                        View Transactions
-                      </Button>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
         </Paper>
-
+  
         {/* Transaction History Dialog */}
         <Dialog
           open={transactionDialogOpen}
@@ -183,6 +181,5 @@ const CustomerManagement = () => {
       </Container>
     </>
   );
-};
-
+}
 export default CustomerManagement; 

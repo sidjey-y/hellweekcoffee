@@ -56,20 +56,30 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <>
-      <AppBar position="static" sx={{ backgroundColor: '#230c02', color: 'white' }} elevation={1}>
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
+    <AppBar position="static" sx={{ backgroundColor: '#4d351d', color: 'white' }} elevation={1}>
+      <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            component="img"
+            src="/assets/logo2.png"
+            alt="Hell Week Coffee Logo"
+            sx={{ height: 50 }} 
+          />
           <Typography variant="h6" component="div" fontWeight="bold">
             Hell Week Coffee
           </Typography>
-          <Button
-            color="inherit"
-            onClick={handleLogout}
-            startIcon={<LogoutIcon />}
-          >
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
+        </Box>
+        <Button
+          color="inherit"
+          onClick={handleLogout}
+          startIcon={<LogoutIcon />}
+        >
+          Logout
+        </Button>
+      </Toolbar>
+    </AppBar>
+
+
       
       <Box sx={{
         position: 'relative', 
@@ -114,7 +124,15 @@ const AdminDashboard: React.FC = () => {
 
       <Box sx={{ backgroundColor: '#EEDCC6', minHeight: '100vh', mt: 0, paddingTop: 5 }}>
         <Container maxWidth="lg" sx={{ mb: 4 }}>
-          <Grid container spacing={3}>
+        <Grid
+            container
+            spacing={3}
+            sx={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+            }}
+          >
             {quickActions.map((action, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
                 <Card 

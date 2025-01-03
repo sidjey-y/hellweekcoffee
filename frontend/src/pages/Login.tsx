@@ -96,11 +96,21 @@ const Login = () => {
           flexDirection: 'column',
         }}
       >
+        <Box
+          component="img"
+          src="assets/logo1.png"
+          alt="Hell Week Coffee Logo"
+          sx={{
+            height: 130,
+            mb: 0,
+          }}
+        />
+
         <Typography
           component="h1"
           variant="h4"
           sx={{
-            mb: 4, // Adds space between title and the form
+            mb: 4, 
             fontWeight: 'bold',
             color: '#230C02'
           }}
@@ -116,7 +126,6 @@ const Login = () => {
             textAlign: 'center',
           }}
         >
-
           <Typography
             component="h2"
             variant="h5"
@@ -164,23 +173,22 @@ const Login = () => {
               helperText={showError && !password ? 'Password is required' : ''}
             />
             <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{
-              mt: 3,
-              mb: 2,
-              backgroundColor: username && password ? '#230C02' : 'grey',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: username && password ? '#430E04' : 'grey',
-              },
-            }}
-            disabled={loading || !username || !password}
-          >
-            {loading ? <CircularProgress size={24} /> : 'Sign In'}
-          </Button>
-
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{
+                mt: 3,
+                mb: 2,
+                backgroundColor: username && password ? '#230C02' : 'grey',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: username && password ? '#430E04' : 'grey',
+                },
+              }}
+              disabled={loading || !username || !password}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Sign In'}
+            </Button>
           </Box>
         </Paper>
       </Box>
