@@ -6,7 +6,6 @@ import theme from './theme';
 import Login from './pages/Login';
 import POS from './pages/POS';
 import AdminDashboard from './pages/AdminDashboard';
-import ManagerDashboard from './pages/ManagerDashboard';
 import Items from './pages/Items';
 import AdminUsers from './pages/AdminUsers';
 import { useSelector, useDispatch } from 'react-redux';
@@ -16,6 +15,8 @@ import { AppDispatch } from './store';
 import { AuthProvider } from './components/AuthProvider';
 import { setAuthErrorHandler } from './utils/axios';
 import PrivateRoute from './components/PrivateRoute';
+import CustomerManagement from './pages/CustomerManagement';
+import TransactionHistory from './pages/TransactionHistory';
 
 const RoleBasedRedirect = () => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -25,7 +26,7 @@ const RoleBasedRedirect = () => {
   } else if (user?.role === 'CASHIER') {
     return <Navigate to="/pos" replace />;
   } else if (user?.role === 'MANAGER') {
-    return <Navigate to="/manager/dashboard" replace />;
+    return <Navigate to="/manager/items" replace />;
   }
   
   // Default fallback
@@ -89,15 +90,6 @@ function AppContent() {
 
       {/* Manager Routes */}
       <Route 
-        path="/manager/dashboard" 
-        element={
-          <PrivateRoute roles={['MANAGER']}>
-            <ManagerDashboard />
-          </PrivateRoute>
-        } 
-      />
-
-      <Route 
         path="/manager/items" 
         element={
           <PrivateRoute roles={['MANAGER']}>
@@ -121,6 +113,25 @@ function AppContent() {
         element={
           <PrivateRoute roles={['ADMIN', 'CASHIER']}>
             <POS />
+          </PrivateRoute>
+        } 
+      />
+
+      <Route 
+        path="/customers" 
+        element={
+          <PrivateRoute roles={['ADMIN', 'CASHIER']}>
+            <CustomerManagement />
+          </PrivateRoute>
+        } 
+      />
+
+      {/* Protected Routes */}
+      <Route 
+        path="/transactions" 
+        element={
+          <PrivateRoute roles={['ADMIN', 'CASHIER']}>
+            <TransactionHistory />
           </PrivateRoute>
         } 
       />

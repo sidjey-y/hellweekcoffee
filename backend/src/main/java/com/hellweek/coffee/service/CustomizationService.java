@@ -105,4 +105,52 @@ public class CustomizationService {
     public List<Customization> getAllCustomizations() {
         return customizationRepository.findByActive(true);
     }
+
+    @Transactional
+    public Customization updateCustomization(Long id, Customization updatedCustomization) {
+        Customization existingCustomization = customizationRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Customization not found with id: " + id));
+
+        // Update basic fields
+        existingCustomization.setName(updatedCustomization.getName());
+        existingCustomization.setCategoryType(updatedCustomization.getCategoryType());
+
+        // Clear existing options and add new ones
+        existingCustomization.getOptions().clear();
+        updatedCustomization.getOptions().forEach(option -> {
+            CustomizationOption newOption = new CustomizationOption();
+            newOption.setName(option.getName());
+            newOption.setPrice(option.getPrice());
+            existingCustomization.addOption(newOption);
+        });
+
+        return customizationRepository.save(existingCustomization);
+    }
+
+    @Transactional
+    public Customization createCustomization(Customization customization) {
+        // Generate a code based on the name
+        String code = customization.getName()
+            .toUpperCase()
+            .replaceAll("[^A-Z]", "")
+            .substring(0, Math.min(customization.getName().length(), 10));
+        
+        customization.setCode(code);
+        customization.setActive(true);
+
+        // Create new CustomizationOption entities
+        List<CustomizationOption> newOptions = customization.getOptions().stream()
+            .map(option -> {
+                CustomizationOption newOption = new CustomizationOption();
+                newOption.setName(option.getName());
+                newOption.setPrice(option.getPrice());
+                return newOption;
+            })
+            .toList();
+
+        customization.getOptions().clear();
+        newOptions.forEach(customization::addOption);
+
+        return customizationRepository.save(customization);
+    }
 }

@@ -79,7 +79,7 @@ const AdminUsers = () => {
     message: '',
     severity: 'success' as 'success' | 'error',
   });
-
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const fetchUsers = useCallback(async () => {
     try {
       const data = await userAPI.getUsers();
@@ -174,41 +174,97 @@ const AdminUsers = () => {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    // Clear previous errors
+    setErrors({});
+
+    // Validate required fields
+    const newErrors: { [key: string]: string } = {};
+    if (!formData.username) newErrors.username = 'Username is required';
+    if (!formData.password) newErrors.password = 'Password is required';
+    if (!formData.firstName) newErrors.firstName = 'First name is required';
+    if (!formData.lastName) newErrors.lastName = 'Last name is required';
+    if (!formData.email) newErrors.email = 'Email is required';
+    if (!formData.phone) newErrors.phone = 'Phone number is required';
+    if (!formData.birthDate) newErrors.birthDate = 'Birth date is required';
+    
+    // Check for password mismatch
+    if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    // Check for password length
+    if (formData.password.length < 😎 {
+        newErrors.password = 'Password must be at least 8 characters long';
+    }
+
+    // Check for birth date in the past
+    const today = new Date();
+    const birthDate = new Date(formData.birthDate);
+    if (birthDate > today) {
+        newErrors.birthDate = 'Birth date must be in the past';
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    //Check for email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+        newErrors.email = 'Invalid email format';
+    }
+
+    //Check if user already exists
+    if (selectedUser) {
+        const existingUser = users.find(user => user.username === formData.username);
+        if (existingUser && existingUser.id !== selectedUser.id) {
+            newErrors.username = 'Username already exists';
+        }
+    }
+
+    // If there are errors, set them and show snackbar messages
+    if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        // Show all error messages through snackbar
+        Object.values(newErrors).forEach(errorMessage => {
+            showSnackbar(errorMessage, 'error');
+        });
+        return false; //??
+    }
 
     try {
-      const userData: UserData = {
-        username: formData.username.trim(),
-        password: formData.password,
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        email: formData.email.trim() || undefined,
-        phone: formData.phone.trim() || undefined,
-        role: formData.role,
-        birthDate: formData.birthDate,
-      };
+        const userData: UserData = {
+            username: formData.username.trim(),
+            password: formData.password,
+            firstName: formData.firstName.trim(),
+            lastName: formData.lastName.trim(),
+            email: formData.email.trim() || undefined,
+            phone: formData.phone.trim() || undefined,
+            role: formData.role,
+            birthDate: formData.birthDate,
+        };
 
-      if (selectedUser) {
-        if (!userData.password) {
-          delete userData.password;
+        if (selectedUser) {
+            if (!userData.password) {
+                delete userData.password; // Remove password if not provided
+            }
+            await userAPI.updateUser(selectedUser.id.toString(), userData);
+            showSnackbar('User updated successfully', 'success');
+        } else {
+            await userAPI.createUser(userData);
+            showSnackbar('User created successfully', 'success');
         }
-        await userAPI.updateUser(selectedUser.id.toString(), userData);
-        showSnackbar('User updated successfully', 'success');
-      } else {
-        await userAPI.createUser(userData);
-        showSnackbar('User created successfully', 'success');
-      }
 
-      handleCloseDialog();
-      fetchUsers();
+        handleCloseDialog();
+        fetchUsers();
     } catch (error: any) {
-      console.error('Error saving user:', error);
-      showSnackbar(
-        error.response?.data?.message || 'Failed to save user',
-        'error'
-      );
+        console.error('Error saving user:', error);
+        showSnackbar(
+            error.response?.data?.message || 'Failed to save user',
+            'error'
+        );
     }
-  };
+};
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this user?')) {

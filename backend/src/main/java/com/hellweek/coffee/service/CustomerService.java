@@ -14,6 +14,7 @@ import java.util.Random;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.thymeleaf.context.Context;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +36,12 @@ public class CustomerService {
             if (request.isMember()) {
                 String membershipId = generateUniqueMembershipId();
                 request.setMembershipId(membershipId);
+                logger.info("Generated membership ID: {}", membershipId);
+            }
+
+            // If membershipId is provided but not marked as member, set member flag
+            if (request.getMembershipId() != null && !request.isMember()) {
+                request.setMember(true);
             }
 
             // If membershipId is provided, verify it doesn't exist
@@ -42,6 +49,9 @@ public class CustomerService {
                 customerRepository.existsByMembershipId(request.getMembershipId())) {
                 throw new IllegalArgumentException("Membership ID already exists");
             }
+
+            // Log the incoming date format
+            logger.info("Received date of birth: {}", request.getDateOfBirth());
 
             Customer customer = new Customer();
             customer.setFirstName(request.getFirstName());
@@ -55,25 +65,32 @@ public class CustomerService {
 
             logger.debug("Saving customer to database: {}", customer);
             Customer savedCustomer = customerRepository.save(customer);
-            logger.info("Successfully created customer with ID: {}", savedCustomer.getId());
+            logger.info("Successfully created customer with ID: {} and membership ID: {}", 
+                savedCustomer.getId(), savedCustomer.getMembershipId());
 
             // Send membership email if customer is a member and has an email
             if (savedCustomer.getMembershipId() != null && savedCustomer.getEmail() != null) {
-                Context context = new Context();
-                context.setVariable("membershipId", savedCustomer.getMembershipId());
-                context.setVariable("firstName", savedCustomer.getFirstName());
-                
-                emailService.sendEmail(
-                    savedCustomer.getEmail(),
-                    "Welcome to HellWeek Coffee - Your Membership ID",
-                    "membership-email",
-                    context
-                );
+                try {
+                    Context context = new Context();
+                    context.setVariable("membershipId", savedCustomer.getMembershipId());
+                    context.setVariable("firstName", savedCustomer.getFirstName());
+                    
+                    emailService.sendEmail(
+                        savedCustomer.getEmail(),
+                        "Welcome to HellWeek Coffee - Your Membership ID",
+                        "membership-email",
+                        context
+                    );
+                } catch (Exception e) {
+                    // Log the email error but don't fail the transaction
+                    logger.error("Failed to send welcome email to customer: {}", e.getMessage());
+                    savedCustomer.setEmailError("Failed to send welcome email: " + e.getMessage());
+                }
             }
 
             return savedCustomer;
         } catch (Exception e) {
-            logger.error("Error creating customer", e);
+            logger.error("Error creating customer: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -82,6 +99,7 @@ public class CustomerService {
         Random random = new Random();
         String membershipId;
         do {
+            // Generate exactly 5 alphanumeric characters
             StringBuilder sb = new StringBuilder();
             String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             for (int i = 0; i < 5; i++) {
@@ -94,8 +112,20 @@ public class CustomerService {
     }
 
     public Customer getCustomerByMembershipId(String membershipId) {
-        return customerRepository.findByMembershipId(membershipId)
-            .orElseThrow(() -> new EntityNotFoundException("Customer not found"));
+        logger.info("Looking up customer by membership ID: {}", membershipId);
+        try {
+            Customer customer = customerRepository.findByMembershipId(membershipId)
+                .orElseThrow(() -> {
+                    logger.error("Customer not found with membership ID: {}", membershipId);
+                    return new EntityNotFoundException("Customer not found with membership ID: " + membershipId);
+                });
+            logger.info("Found customer: {} {}, membership ID: {}", 
+                customer.getFirstName(), customer.getLastName(), customer.getMembershipId());
+            return customer;
+        } catch (Exception e) {
+            logger.error("Error looking up customer with membership ID {}: {}", membershipId, e.getMessage());
+            throw e;
+        }
     }
 
     @Transactional
@@ -134,5 +164,10 @@ public class CustomerService {
         request.setFirstName(firstName);
         request.setMember(false);
         return createCustomer(request);
+    }
+
+    public List<Customer> getAllCustomers() {
+        logger.info("Fetching all customers");
+        return customerRepository.findAll();
     }
 }

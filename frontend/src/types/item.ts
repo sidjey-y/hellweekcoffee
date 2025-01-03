@@ -72,10 +72,10 @@ export interface ItemRequest {
   type: ItemType;
   basePrice: number;
   categoryId: string;
-  description: string;
+  description?: string;
   sizePrices: Record<Size, number>;
   active: boolean;
-  availableCustomizations?: string[];
+  availableCustomizations: number[];
 }
 
 export const isDrinkType = (type: ItemType): boolean => {

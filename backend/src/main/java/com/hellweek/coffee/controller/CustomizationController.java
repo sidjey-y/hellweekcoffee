@@ -28,4 +28,16 @@ public class CustomizationController {
     public Set<Customization> getCustomizationsByCategory(@PathVariable CategoryType categoryType) {
         return customizationService.getCustomizationsByCategory(categoryType);
     }
+
+    @PostMapping
+    public ResponseEntity<Customization> createCustomization(@RequestBody Customization customization) {
+        return ResponseEntity.ok(customizationService.createCustomization(customization));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Customization> updateCustomization(
+            @PathVariable Long id,
+            @RequestBody Customization customization) {
+        return ResponseEntity.ok(customizationService.updateCustomization(id, customization));
+    }
 }

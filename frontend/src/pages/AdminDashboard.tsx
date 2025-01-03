@@ -46,13 +46,6 @@ const AdminDashboard: React.FC = () => {
       color: '#2196F3',
     },
     {
-      title: 'View Inventory',
-      icon: <StoreIcon sx={{ fontSize: 40 }} />,
-      description: 'Check and update inventory levels',
-      path: '/admin/inventory',
-      color: '#FF9800',
-    },
-    {
       title: 'POS System',
       icon: <POSIcon sx={{ fontSize: 40 }} />,
       description: 'Access the point of sale system',

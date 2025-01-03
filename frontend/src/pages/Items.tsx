@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Container,
   Typography,
@@ -31,6 +31,8 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   Logout as LogoutIcon,
+  Upload as UploadIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -41,18 +43,38 @@ import {
   ItemType, 
   ITEM_TYPES, 
   ItemRequest, 
-  isDrinkType, 
+  isDrinkType,
+  isFoodType,
   calculateSizePrices,
   Size,
   CategoryType,
   CATEGORY_TYPES
 } from '../types/item';
 import { Category } from '../types/category';
-import { itemsAPI, categoriesAPI } from '../services/api';
+import { itemsAPI, categoriesAPI, customizationAPI } from '../services/api';
 import { styled, alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import InputBase from '@mui/material/InputBase';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import Papa from 'papaparse';
+
+interface CSVRow {
+  name: string;
+  type: string;
+  basePrice: string;
+  categoryId: string;
+  description: string;
+  active: string;
+  smallPrice?: string;
+  mediumPrice?: string;
+  largePrice?: string;
+}
+
+interface ParseResult {
+  data: CSVRow[];
+  errors: Papa.ParseError[];
+  meta: Papa.ParseMeta;
+}
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -114,7 +136,7 @@ const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   },
 })) as typeof TableContainer;
 
-type ItemFormData = {
+interface ItemFormData {
   name: string;
   type: ItemType;
   basePrice: number;
@@ -122,8 +144,8 @@ type ItemFormData = {
   description: string;
   sizePrices: Record<Size, number>;
   active: boolean;
-  availableCustomizations?: string[];
-};
+  availableCustomizations: number[];
+}
 
 const defaultSizePrices: Record<Size, number> = {
   SMALL: 0,
@@ -142,24 +164,54 @@ const defaultFormData: ItemFormData = {
   availableCustomizations: [],
 };
 
-const generateItemCode = (categoryType: CategoryType, itemName: string, existingItems: Item[]): string => {
-  // Get first and last characters of category
-  const categoryChars = `${categoryType.charAt(0)}${categoryType.charAt(categoryType.length - 1)}`.toUpperCase();
+const generateItemCode = (categoryId: CategoryType, name: string, existingItems: Item[]): string => {
+  const prefix = categoryId.substring(0, 2).toUpperCase();
+  const namePrefix = name.substring(0, 2).toUpperCase();
+  let counter = 1;
   
-  // Get first four letters of name, pad with last letter if less than 4 chars
-  const nameLength = itemName.length;
-  const nameChars = nameLength >= 4 
-    ? itemName.slice(0, 4).toUpperCase()
-    : (itemName + itemName.charAt(nameLength - 1).repeat(4 - nameLength)).toUpperCase();
+  let code: string;
+  do {
+    code = `${prefix}${namePrefix}${counter.toString().padStart(3, '0')}`;
+    counter++;
+  } while (existingItems.some(item => item.code === code));
   
-  // Count items in this category to generate the sequence number
-  const categoryItems = existingItems.filter(item => item.category.type === categoryType);
-  const sequenceNumber = (categoryItems.length + 1).toString().padStart(3, '0');
-  
-  return `${categoryChars}-${nameChars}-${sequenceNumber}`;
+  return code;
 };
 
 type CategoryTypeValue = keyof typeof CATEGORY_TYPES;
+
+// Add this interface for customizations
+interface Customization {
+  id: number;
+  name: string;
+  options: Array<{
+    id: number;
+    name: string;
+    price: number;
+  }>;
+}
+
+interface CustomizationResponse {
+  id: string | number;
+  name: string;
+  options: Array<{
+    id: string | number;
+    name: string;
+    price: number;
+  }>;
+}
+
+interface CustomizationOption {
+  id: number;
+  name: string;
+  price: number;
+}
+
+interface CustomizationFormData {
+  id: number;
+  name: string;
+  options: CustomizationOption[];
+}
 
 const Items = () => {
   const navigate = useNavigate();
@@ -176,6 +228,15 @@ const Items = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+  const [confirmItemCode, setConfirmItemCode] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [availableCustomizations, setAvailableCustomizations] = useState<Customization[]>([]);
+  const [customizationDialogOpen, setCustomizationDialogOpen] = useState(false);
+  const [selectedItemForCustomization, setSelectedItemForCustomization] = useState<Item | null>(null);
+  const [customizationFormData, setCustomizationFormData] = useState<CustomizationFormData[]>([]);
 
   useEffect(() => {
     fetchItems();
@@ -184,6 +245,12 @@ const Items = () => {
 
   useEffect(() => {
     if (selectedItem) {
+      // Convert string IDs to numbers
+      const customizationIds = selectedItem.availableCustomizations?.map(c => {
+        const id = typeof c.id === 'string' ? parseInt(c.id, 10) : c.id;
+        return isNaN(id) ? 0 : id; // Fallback to 0 if parsing fails
+      }) || [];
+      
       setFormData({
         name: selectedItem.name,
         type: selectedItem.type,
@@ -192,7 +259,7 @@ const Items = () => {
         description: selectedItem.description || '',
         sizePrices: selectedItem.sizePrices,
         active: selectedItem.active,
-        availableCustomizations: selectedItem.availableCustomizations?.map(c => c.id) || [],
+        availableCustomizations: customizationIds
       });
     } else {
       setFormData({
@@ -249,27 +316,30 @@ const Items = () => {
   };
 
   const handleDeleteClick = (item: Item) => {
-    setSelectedItem(item);
-    setOpenDeleteDialog(true);
+    setItemToDelete(item);
+    setDeleteDialogOpen(true);
+    setConfirmItemCode('');
   };
 
   const handleDeleteConfirm = async () => {
-    if (!selectedItem) return;
-    
+    if (!itemToDelete) return;
+
+    if (confirmItemCode !== itemToDelete.code) {
+      enqueueSnackbar('Item code does not match', { variant: 'error' });
+      return;
+    }
+
     try {
-      await itemsAPI.deleteItem(selectedItem.code);
+      await itemsAPI.deleteItem(itemToDelete.code);
+      setItems(items.filter(item => item.code !== itemToDelete.code));
       enqueueSnackbar('Item deleted successfully', { variant: 'success' });
-      setOpenDeleteDialog(false);
-      fetchItems();
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
+      setConfirmItemCode('');
     } catch (error) {
       console.error('Error deleting item:', error);
       enqueueSnackbar('Failed to delete item', { variant: 'error' });
     }
-  };
-
-  const handleDeleteCancel = () => {
-    setOpenDeleteDialog(false);
-    setSelectedItem(null);
   };
 
   const handleDialogClose = () => {
@@ -358,6 +428,352 @@ const Items = () => {
     return matchesSearch && matchesCategory && matchesType;
   });
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    Papa.parse<CSVRow>(file, {
+      header: true,
+      complete: async (results: ParseResult) => {
+        try {
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const row of results.data) {
+            try {
+              const type = row.type.toUpperCase() as ItemType;
+              const basePrice = parseFloat(row.basePrice);
+              
+              // Create size prices object
+              const sizePrices: Record<Size, number> = type === ITEM_TYPES.DRINKS ? {
+                SMALL: parseFloat(row.smallPrice || row.basePrice),
+                MEDIUM: parseFloat(row.mediumPrice || row.basePrice),
+                LARGE: parseFloat(row.largePrice || row.basePrice)
+              } : defaultSizePrices;
+
+              // Convert CSV data to item format
+              const itemData: ItemRequest = {
+                name: row.name,
+                type,
+                basePrice,
+                categoryId: row.categoryId,
+                description: row.description || '',
+                active: row.active.toLowerCase() === 'true',
+                sizePrices,
+                availableCustomizations: [] as number[] // Initialize as empty array for imported items
+              };
+
+              // Create the item
+              const code = generateItemCode(row.categoryId as CategoryType, row.name, items);
+              await itemsAPI.createItem({ ...itemData, code });
+              successCount++;
+            } catch (error) {
+              console.error('Error importing row:', row, error);
+              errorCount++;
+            }
+          }
+
+          // Refresh the items list
+          await fetchItems();
+          
+          // Show results
+          enqueueSnackbar(
+            `Import completed: ${successCount} items added, ${errorCount} failed`,
+            { variant: successCount > 0 ? 'success' : 'warning' }
+          );
+        } catch (error) {
+          console.error('Error processing CSV:', error);
+          enqueueSnackbar('Failed to process CSV file', { variant: 'error' });
+        } finally {
+          setIsImporting(false);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }
+      },
+      error: (error: Error | Papa.ParseError) => {
+        console.error('Error parsing CSV:', error);
+        enqueueSnackbar('Failed to parse CSV file', { variant: 'error' });
+        setIsImporting(false);
+      }
+    });
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleCustomizationSelect = (customizationId: number, selected: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      availableCustomizations: selected
+        ? [...prev.availableCustomizations, customizationId]
+        : prev.availableCustomizations.filter(id => id !== customizationId)
+    }));
+  };
+
+  const renderCustomizationSelect = () => (
+    <FormControl fullWidth margin="normal">
+      <InputLabel>Available Customizations</InputLabel>
+      <Select
+        multiple
+        value={formData.availableCustomizations}
+        onChange={(e) => {
+          const values = e.target.value as (string | number)[];
+          const selected = values.map(v => typeof v === 'string' ? parseInt(v) : v);
+          setFormData(prev => ({
+            ...prev,
+            availableCustomizations: selected
+          }));
+        }}
+      >
+        {availableCustomizations.map((customization: Customization) => (
+          <MenuItem key={customization.id} value={customization.id}>
+            {customization.name}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+
+  // Add fetchCustomizations function
+  const fetchCustomizations = async () => {
+    try {
+      const customizations = await customizationAPI.getCustomizations();
+      setAvailableCustomizations(customizations.map((c: CustomizationResponse) => ({
+        id: typeof c.id === 'string' ? parseInt(c.id, 10) : c.id,
+        name: c.name,
+        options: c.options.map(o => ({
+          id: typeof o.id === 'string' ? parseInt(o.id, 10) : o.id,
+          name: o.name,
+          price: o.price
+        }))
+      })));
+    } catch (error) {
+      console.error('Error fetching customizations:', error);
+      enqueueSnackbar('Failed to fetch customizations', { variant: 'error' });
+    }
+  };
+
+  // Add useEffect to fetch customizations
+  useEffect(() => {
+    fetchCustomizations();
+  }, []);
+
+  const handleCustomizationClick = async (item: Item) => {
+    setSelectedItemForCustomization(item);
+    try {
+      const customizations = await customizationAPI.getCustomizationsByCategory(item.category.type);
+      let initialCustomizations = customizations.map((c: CustomizationResponse) => ({
+        id: typeof c.id === 'string' ? parseInt(c.id, 10) : c.id,
+        name: c.name,
+        options: c.options.map((o: { id: string | number; name: string; price: number }) => ({
+          id: typeof o.id === 'string' ? parseInt(o.id, 10) : o.id,
+          name: o.name,
+          price: o.price
+        }))
+      }));
+
+      // If there are no customizations, initialize with one empty customization
+      if (initialCustomizations.length === 0) {
+        initialCustomizations = [{
+          id: Date.now(),
+          name: '',
+          options: [{ id: Date.now(), name: '', price: 0 }]
+        }];
+      }
+
+      setCustomizationFormData(initialCustomizations);
+      setCustomizationDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching customizations:', error);
+      enqueueSnackbar('Failed to fetch customizations', { variant: 'error' });
+    }
+  };
+
+  const handleAddCustomizationOption = (customizationIndex: number) => {
+    setCustomizationFormData(prev => {
+      const updated = [...prev];
+      const currentOptions = updated[customizationIndex].options;
+      
+      if (currentOptions.length >= 5) {
+        enqueueSnackbar('Maximum of 5 options allowed per customization', { variant: 'warning' });
+        return prev;
+      }
+
+      updated[customizationIndex] = {
+        ...updated[customizationIndex],
+        options: [
+          ...currentOptions,
+          { id: Date.now(), name: '', price: 0 }
+        ]
+      };
+      return updated;
+    });
+  };
+
+  const handleRemoveCustomizationOption = (customizationIndex: number, optionIndex: number) => {
+    setCustomizationFormData(prev => {
+      const updated = [...prev];
+      updated[customizationIndex] = {
+        ...updated[customizationIndex],
+        options: updated[customizationIndex].options.filter((_, i) => i !== optionIndex)
+      };
+      return updated;
+    });
+  };
+
+  const handleCustomizationChange = (
+    customizationIndex: number,
+    field: string,
+    value: string | number
+  ) => {
+    setCustomizationFormData(prev => {
+      const updated = [...prev];
+      updated[customizationIndex] = {
+        ...updated[customizationIndex],
+        [field]: value
+      };
+      return updated;
+    });
+  };
+
+  const handleOptionChange = (
+    customizationIndex: number,
+    optionIndex: number,
+    field: string,
+    value: string | number
+  ) => {
+    setCustomizationFormData(prev => {
+      const updated = [...prev];
+      updated[customizationIndex] = {
+        ...updated[customizationIndex],
+        options: updated[customizationIndex].options.map((opt, i) => 
+          i === optionIndex ? { ...opt, [field]: value } : opt
+        )
+      };
+      return updated;
+    });
+  };
+
+  const handleAddNewCustomization = () => {
+    setCustomizationFormData(prev => [
+      ...prev,
+      {
+        id: Date.now(), // Temporary ID for new customization
+        name: '',
+        options: [{ id: Date.now(), name: '', price: 0 }]
+      }
+    ]);
+  };
+
+  const handleSaveCustomizations = async () => {
+    try {
+      // Validate customizations
+      for (const customization of customizationFormData) {
+        if (!customization.name.trim()) {
+          enqueueSnackbar('Customization name cannot be empty', { variant: 'error' });
+          return;
+        }
+        for (const option of customization.options) {
+          if (!option.name.trim()) {
+            enqueueSnackbar('Option name cannot be empty', { variant: 'error' });
+            return;
+          }
+          if (option.price < 0) {
+            enqueueSnackbar('Option price cannot be negative', { variant: 'error' });
+            return;
+          }
+        }
+      }
+
+      const savedCustomizationIds: number[] = [];
+
+      // Save customizations
+      for (const customization of customizationFormData) {
+        if (!selectedItemForCustomization) {
+          throw new Error('No item selected for customization');
+        }
+
+        const customizationData = {
+          name: customization.name,
+          categoryType: selectedItemForCustomization.category.type,
+          options: customization.options.map(opt => ({
+            name: opt.name,
+            price: opt.price
+          }))
+        };
+
+        try {
+          let savedCustomization;
+          // Check if it's a new customization (id is a timestamp) or an existing one
+          if (customization.id.toString().length > 10) {
+            // New customization
+            savedCustomization = await customizationAPI.createCustomization(customizationData);
+          } else {
+            // Existing customization
+            savedCustomization = await customizationAPI.updateCustomization(customization.id, customizationData);
+          }
+          savedCustomizationIds.push(savedCustomization.id);
+        } catch (error) {
+          console.error('Error saving customization:', error);
+          throw error;
+        }
+      }
+
+      // Update item's available customizations
+      if (selectedItemForCustomization) {
+        const updatedItemData: ItemRequest = {
+          name: selectedItemForCustomization.name,
+          type: selectedItemForCustomization.type,
+          basePrice: selectedItemForCustomization.basePrice,
+          categoryId: selectedItemForCustomization.category.id,
+          description: selectedItemForCustomization.description || '',
+          sizePrices: selectedItemForCustomization.sizePrices,
+          active: selectedItemForCustomization.active,
+          availableCustomizations: savedCustomizationIds
+        };
+        await itemsAPI.updateItem(selectedItemForCustomization.code, updatedItemData);
+        
+        // Refresh items list
+        await fetchItems();
+      }
+
+      setCustomizationDialogOpen(false);
+      enqueueSnackbar('Customizations saved successfully', { variant: 'success' });
+    } catch (error) {
+      console.error('Error saving customizations:', error);
+      enqueueSnackbar('Failed to save customizations', { variant: 'error' });
+    }
+  };
+
+  // Modify the table cell for customization icon
+  const renderCustomizationCell = (item: Item) => {
+    // Only show customization icon for DRINKS and FOOD items
+    if (!isDrinkType(item.type) && !isFoodType(item.type)) {
+      return <TableCell />; // Empty cell for non-customizable categories
+    }
+
+    return (
+      <TableCell>
+        <IconButton
+          onClick={() => handleCustomizationClick(item)}
+          color="primary"
+          size="small"
+          title="Manage Customizations"
+        >
+          <SettingsIcon />
+          {item.availableCustomizations && item.availableCustomizations.length > 0 && (
+            <Typography variant="caption" sx={{ ml: 0.5 }}>
+              ({item.availableCustomizations.length})
+            </Typography>
+          )}
+        </IconButton>
+      </TableCell>
+    );
+  };
+
   return (
     <>
       <AppBar position="static" color="default" elevation={1}>
@@ -426,14 +842,32 @@ const Items = () => {
           <Typography variant="h4" component="h1">
             Items
           </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleAddItem}
-          >
-            Add New Item
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <input
+              type="file"
+              accept=".csv"
+              style={{ display: 'none' }}
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<UploadIcon />}
+              onClick={handleImportClick}
+              disabled={isImporting}
+            >
+              {isImporting ? 'Importing...' : 'Import CSV'}
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={handleAddItem}
+            >
+              Add New Item
+            </Button>
+          </Box>
         </Box>
 
         <Paper>
@@ -446,8 +880,10 @@ const Items = () => {
                   <TableCell>Type</TableCell>
                   <TableCell>Category</TableCell>
                   <TableCell>Base Price</TableCell>
+                  <TableCell>Size Prices</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Actions</TableCell>
+                  <TableCell>Customizations</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -468,6 +904,17 @@ const Items = () => {
                       <TableCell>{item.type.replace(/_/g, ' ')}</TableCell>
                       <TableCell>{item.category.name}</TableCell>
                       <TableCell>₱{item.basePrice.toFixed(2)}</TableCell>
+                      <TableCell>
+                        {isDrinkType(item.type) && (
+                          <>
+                            {Object.entries(item.sizePrices).map(([size, price]) => (
+                              <Typography key={size}>
+                                {size}: ₱{price.toFixed(2)}
+                              </Typography>
+                            ))}
+                          </>
+                        )}
+                      </TableCell>
                       <TableCell>{item.active ? 'Active' : 'Inactive'}</TableCell>
                       <TableCell>
                         <IconButton
@@ -485,6 +932,7 @@ const Items = () => {
                           <DeleteIcon />
                         </IconButton>
                       </TableCell>
+                      {renderCustomizationCell(item)}
                     </TableRow>
                   ))}
               </TableBody>
@@ -494,16 +942,38 @@ const Items = () => {
 
         {/* Delete Confirmation Dialog */}
         <Dialog
-          open={openDeleteDialog}
-          onClose={() => setOpenDeleteDialog(false)}
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
         >
-          <DialogTitle>Confirm Delete</DialogTitle>
+          <DialogTitle>Delete Item</DialogTitle>
           <DialogContent>
-            Are you sure you want to delete {selectedItem?.name}?
+            <Typography gutterBottom>
+              Are you sure you want to delete this item?
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Item: {itemToDelete?.name} (Code: {itemToDelete?.code})
+            </Typography>
+            <Typography variant="body2" color="error" sx={{ mt: 2, mb: 1 }}>
+              Please enter the item code to confirm deletion:
+            </Typography>
+            <TextField
+              fullWidth
+              value={confirmItemCode}
+              onChange={(e) => setConfirmItemCode(e.target.value)}
+              placeholder="Enter item code"
+              size="small"
+              sx={{ mt: 1 }}
+            />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-            <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              color="error"
+              disabled={!confirmItemCode}
+            >
               Delete
             </Button>
           </DialogActions>
@@ -628,6 +1098,78 @@ const Items = () => {
               disabled={!formData.name || !formData.type || !formData.categoryId || formData.basePrice <= 0}
             >
               {dialogMode === 'add' ? 'Add' : 'Update'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Customization Dialog */}
+        <Dialog
+          open={customizationDialogOpen}
+          onClose={() => setCustomizationDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
+          disableEscapeKeyDown
+          onBackdropClick={() => {}}
+        >
+          <DialogTitle>
+            Manage Customizations - {selectedItemForCustomization?.name}
+          </DialogTitle>
+          <DialogContent>
+            {customizationFormData.map((customization, index) => (
+              <Box key={index} sx={{ mb: 4, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Customization Name"
+                  value={customization.name}
+                  onChange={(e) => handleCustomizationChange(index, 'name', e.target.value)}
+                  margin="normal"
+                />
+                {customization.options.map((option, optionIndex) => (
+                  <Box key={optionIndex} sx={{ display: 'flex', gap: 2, mb: 1 }}>
+                    <TextField
+                      label="Option Name"
+                      value={option.name}
+                      onChange={(e) => handleOptionChange(index, optionIndex, 'name', e.target.value)}
+                      sx={{ flex: 2 }}
+                    />
+                    <TextField
+                      label="Price"
+                      type="number"
+                      value={option.price}
+                      onChange={(e) => handleOptionChange(index, optionIndex, 'price', Number(e.target.value))}
+                      sx={{ flex: 1 }}
+                    />
+                    <IconButton 
+                      color="error" 
+                      onClick={() => handleRemoveCustomizationOption(index, optionIndex)}
+                      disabled={customization.options.length <= 1}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                ))}
+                <Button
+                  variant="outlined"
+                  onClick={() => handleAddCustomizationOption(index)}
+                  disabled={customization.options.length >= 5}
+                  sx={{ mt: 1 }}
+                >
+                  Add Option
+                </Button>
+              </Box>
+            ))}
+            <Button
+              variant="contained"
+              onClick={handleAddNewCustomization}
+              sx={{ mt: 2 }}
+            >
+              Add New Customization
+            </Button>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCustomizationDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveCustomizations} variant="contained" color="primary">
+              Save Customizations
             </Button>
           </DialogActions>
         </Dialog>
