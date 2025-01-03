@@ -1,68 +1,68 @@
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\LoginRequest.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\ItemCustomizationId.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\EmailService.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\PaymentMethod.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\controller\ItemController.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\CategoryRequest.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\controller\AuthController.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\CategoryService.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\repository\CustomizationOptionRepository.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\TransactionItem.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\ItemRequest.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\UserService.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\config\DataInitializer.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\analytics\PaymentMethodAnalytics.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\Transaction.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\User.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\CustomerAnalyticsService.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\config\EmailConfig.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\CustomerAnalytics.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\Role.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\Category.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\repository\CategoryRepository.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\controller\TransactionController.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\CoffeeApplication.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\repository\MenuItemRepository.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\controller\CategoryController.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\CustomerService.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\analytics\ProductSalesAnalytics.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\ErrorResponse.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\ItemService.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\analytics\SalesAnalytics.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\OrderItem.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\controller\CustomerAnalyticsController.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\Customization.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\JwtService.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\repository\CustomizationRepository.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\ItemCustomization.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\MenuItem.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\CustomizationRequest.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\TransactionAnalyticsService.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\repository\TransactionRepository.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\TransactionRequest.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\config\UserDetailsConfig.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\ReceiptResponse.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\ItemType.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\OrderCustomizationRequest.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\TransactionAnalytics.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\controller\CustomizationController.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\CustomerRequest.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\security\JwtAuthenticationFilter.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\repository\CustomerRepository.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\controller\TransactionAnalyticsController.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\controller\CustomerController.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\AuthService.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\Size.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\TransactionService.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\UserRequest.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\CategoryType.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\config\SecurityConfig.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\repository\ItemRepository.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\dto\OrderItemRequest.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\repository\UserRepository.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\config\WebConfig.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\Customer.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\CustomizationOption.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\TransactionStatus.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\model\Item.java
-D:\01 Education\00 College\00 Computer Science\A.Y. 2024 - 2025 - 1st Semester\CMSC 127 - Database Systems\MP\HellWeekCoffee\backend\src\main\java\com\hellweek\coffee\service\CustomizationService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\repository\TransactionRepository.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\controller\ItemController.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\CustomizationService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\ItemCustomizationId.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\repository\MenuItemRepository.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\MenuItem.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\ItemRequest.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\Item.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\ItemCustomization.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\repository\CustomizationRepository.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\UserService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\analytics\PaymentMethodAnalytics.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\EmailService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\controller\AuthController.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\repository\ItemRepository.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\security\JwtAuthenticationFilter.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\Customer.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\analytics\SalesAnalytics.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\LoginRequest.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\CategoryType.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\Customization.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\config\WebConfig.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\controller\TransactionController.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\TransactionStatus.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\CategoryService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\CustomizationRequest.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\repository\CustomerRepository.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\controller\CustomerController.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\ItemService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\controller\TransactionAnalyticsController.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\config\EmailConfig.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\OrderItemRequest.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\CustomerAnalyticsService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\TransactionAnalyticsService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\TransactionAnalytics.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\CustomerAnalytics.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\PaymentMethod.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\TransactionItem.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\config\UserDetailsConfig.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\ErrorResponse.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\CustomizationOption.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\config\SecurityConfig.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\OrderCustomizationRequest.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\UserRequest.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\TransactionRequest.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\Role.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\JwtService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\controller\CustomerAnalyticsController.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\Transaction.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\CoffeeApplication.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\repository\CategoryRepository.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\controller\CategoryController.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\CustomerService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\AuthService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\ReceiptResponse.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\repository\CustomizationOptionRepository.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\controller\CustomizationController.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\CustomerRequest.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\OrderItem.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\ItemType.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\User.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\analytics\ProductSalesAnalytics.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\config\DataInitializer.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\Category.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\model\Size.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\repository\UserRepository.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\service\TransactionService.java
+C:\Users\Marc\hellweekcoffee\backend\src\main\java\com\hellweek\coffee\dto\CategoryRequest.java
