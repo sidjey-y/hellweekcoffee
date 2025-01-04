@@ -1114,7 +1114,7 @@ const POS = () => {
                               }}
                               onClick={() => handleItemSelect(item)}
                             >
-                              <Typography variant="subtitle1" gutterBottom>
+                              <Typography variant="subtitle1" gutterBottom fontWeight='bold'>
                                 {item.name}
                               </Typography>
                               <Typography variant="body2" color="text.secondary">
