@@ -33,6 +33,7 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Cancel as CancelIcon,
   Person as PersonIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -121,6 +122,7 @@ const POS = () => {
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+  const [promoCodeError, setPromoCodeError] = useState<string>('');
 
   useEffect(() => {
     fetchCategories();
@@ -719,26 +721,59 @@ const POS = () => {
 
   const handleApplyPromoCode = async () => {
     if (!promoCode.trim()) {
-      enqueueSnackbar('Please enter a promo code', { variant: 'warning' });
+      setPromoCodeError('Please enter a promo code');
+      enqueueSnackbar('Please enter a promo code', { 
+        variant: 'warning',
+        anchorOrigin: {
+          vertical: 'top',
+          horizontal: 'center'
+        }
+      });
       return;
     }
 
     setIsValidatingPromo(true);
+    setPromoCodeError('');
     try {
       const response = await axiosInstance.post('/promos/validate', { code: promoCode });
       if (response.data.valid) {
         const discountPercent = response.data.discountPercent;
         const discountAmount = (calculateTotal() * discountPercent) / 100;
         setDiscount(discountAmount);
-        enqueueSnackbar(`Promo code applied! ${discountPercent}% discount`, { variant: 'success' });
+        setPromoCodeError('');
+        enqueueSnackbar(`Promo code applied! ${discountPercent}% discount`, { 
+          variant: 'success',
+          anchorOrigin: {
+            vertical: 'top',
+            horizontal: 'center'
+          }
+        });
       } else {
         setDiscount(0);
-        enqueueSnackbar(response.data.message || 'Invalid promo code', { variant: 'error' });
+        setPromoCode('');
+        setPromoCodeError('Invalid promo code. Please try again.');
+        enqueueSnackbar(response.data.message || 'Invalid promo code', { 
+          variant: 'error',
+          anchorOrigin: {
+            vertical: 'top',
+            horizontal: 'center'
+          }
+        });
       }
     } catch (error: any) {
       console.error('Error validating promo code:', error);
       setDiscount(0);
-      enqueueSnackbar(error.response?.data?.message || 'Invalid promo code', { variant: 'error' });
+      setPromoCode('');
+      const errorMessage = 'There is no such promo code. Please try again.';
+      setPromoCodeError(errorMessage);
+      enqueueSnackbar(errorMessage, { 
+        variant: 'error',
+        autoHideDuration: 3000,
+        anchorOrigin: {
+          vertical: 'top',
+          horizontal: 'center'
+        }
+      });
     } finally {
       setIsValidatingPromo(false);
     }
@@ -947,15 +982,22 @@ const POS = () => {
       <AppBar position="static" sx={{ backgroundColor: '#4d351d', color: 'white' }} elevation={1}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box
-                      component="img"
-                      src="/assets/logo2.png"
-                      alt="Hell Week Coffee Logo"
-                      sx={{ height: 50 }} 
-                    />
-          <Typography variant="h6" component="div" fontWeight='bold'>
-            Hell Week Coffee
-          </Typography>
+            <IconButton 
+              onClick={() => navigate(-1)} 
+              sx={{ mr: 2 }}
+              aria-label="back"
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Box
+              component="img"
+              src="/assets/logo2.png"
+              alt="Hell Week Coffee Logo"
+              sx={{ height: 50 }} 
+            />
+            <Typography variant="h6" component="div" fontWeight='bold'>
+              Hell Week Coffee
+            </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
@@ -1383,9 +1425,14 @@ const POS = () => {
                       size="small"
                       placeholder="Enter promo code"
                       value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      onChange={(e) => {
+                        setPromoCode(e.target.value.toUpperCase());
+                        setPromoCodeError(''); // Clear error when user types
+                      }}
                       disabled={isValidatingPromo}
                       sx={{ flex: 1 }}
+                      error={!!promoCodeError}
+                      helperText={promoCodeError}
                     />
                     <Button
                       variant="contained"

@@ -99,13 +99,33 @@ public class CustomerService {
         Random random = new Random();
         String membershipId;
         do {
-            // Generate exactly 5 alphanumeric characters
+            // Generate a 5-character ID with at least one letter and one number
             StringBuilder sb = new StringBuilder();
-            String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            for (int i = 0; i < 5; i++) {
-                sb.append(chars.charAt(random.nextInt(chars.length())));
+            String letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            String numbers = "0123456789";
+            
+            // Ensure at least one letter
+            sb.append(letters.charAt(random.nextInt(letters.length())));
+            
+            // Ensure at least one number
+            sb.append(numbers.charAt(random.nextInt(numbers.length())));
+            
+            // Fill the remaining 3 characters with random mix
+            String allChars = letters + numbers;
+            for (int i = 0; i < 3; i++) {
+                sb.append(allChars.charAt(random.nextInt(allChars.length())));
             }
-            membershipId = sb.toString();
+            
+            // Shuffle the characters to randomize position of letter and number
+            char[] chars = sb.toString().toCharArray();
+            for (int i = chars.length - 1; i > 0; i--) {
+                int j = random.nextInt(i + 1);
+                char temp = chars[i];
+                chars[i] = chars[j];
+                chars[j] = temp;
+            }
+            
+            membershipId = new String(chars);
         } while (customerRepository.existsByMembershipId(membershipId));
         
         return membershipId;
@@ -169,5 +189,24 @@ public class CustomerService {
     public List<Customer> getAllCustomers() {
         logger.info("Fetching all customers");
         return customerRepository.findAll();
+    }
+
+    @Transactional
+    public void deleteCustomer(Long id) {
+        logger.info("Attempting to delete customer with ID: {}", id);
+        try {
+            Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + id));
+            
+            // The @OneToMany cascade will handle the deletion of related transactions
+            customerRepository.delete(customer);
+            logger.info("Successfully deleted customer with ID: {} and their related data", id);
+        } catch (EntityNotFoundException e) {
+            logger.error("Customer not found with ID: {}", id);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error deleting customer with ID {}: {}", id, e.getMessage(), e);
+            throw new RuntimeException("Failed to delete customer: " + e.getMessage(), e);
+        }
     }
 }

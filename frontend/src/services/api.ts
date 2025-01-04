@@ -639,6 +639,19 @@ export const customerAPI = {
       throw new Error(error.response?.data?.message || 'Failed to fetch customer transactions');
     }
   },
+
+  deleteCustomer: async (id: number) => {
+    try {
+      await axiosInstance.delete(`/customers/${id}`);
+    } catch (error: any) {
+      console.error('Error deleting customer:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw new Error(error.response?.data?.message || 'Failed to delete customer');
+    }
+  },
 };
 
 export const transactionAPI = {

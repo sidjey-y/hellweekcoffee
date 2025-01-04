@@ -18,7 +18,19 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/customers")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3001", allowCredentials = "true", maxAge = 3600)
+@CrossOrigin(
+    origins = "http://localhost:3001",
+    allowedHeaders = "*",
+    methods = {
+        RequestMethod.GET,
+        RequestMethod.POST,
+        RequestMethod.PUT,
+        RequestMethod.DELETE,
+        RequestMethod.OPTIONS
+    },
+    allowCredentials = "true",
+    maxAge = 3600
+)
 public class CustomerController {
     private static final Logger logger = LoggerFactory.getLogger(CustomerController.class);
     private final CustomerService customerService;
@@ -81,5 +93,23 @@ public class CustomerController {
     @GetMapping
     public ResponseEntity<List<Customer>> getAllCustomers() {
         return ResponseEntity.ok(customerService.getAllCustomers());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteCustomer(@PathVariable Long id) {
+        logger.info("Received request to delete customer with ID: {}", id);
+        try {
+            customerService.deleteCustomer(id);
+            logger.info("Successfully deleted customer with ID: {}", id);
+            return ResponseEntity.noContent().build();
+        } catch (EntityNotFoundException e) {
+            logger.warn("Customer not found with ID: {}", id);
+            return ResponseEntity.status(404)
+                .body(Map.of("message", "Customer not found with ID: " + id));
+        } catch (Exception e) {
+            logger.error("Error deleting customer with ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                .body(Map.of("message", "Failed to delete customer: " + e.getMessage()));
+        }
     }
 }

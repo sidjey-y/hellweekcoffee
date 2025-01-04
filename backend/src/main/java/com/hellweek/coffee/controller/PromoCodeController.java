@@ -27,7 +27,7 @@ public class PromoCodeController {
             if (code == null || code.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "valid", false,
-                    "message", "Promo code is required"
+                    "message", "Please enter a promo code"
                 ));
             }
             PromoCode promoCode = promoCodeService.validatePromoCode(code);
@@ -40,7 +40,7 @@ public class PromoCodeController {
             logger.error("Error validating promo code: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of(
                 "valid", false,
-                "message", e.getMessage()
+                "message", "There is no such promo code. Please try again."
             ));
         }
     }
