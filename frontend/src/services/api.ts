@@ -168,7 +168,7 @@ export const userAPI = {
   getUsers: async () => {
     try {
       const response = await authInstance.get('/auth/users');
-      return response.data.filter((user: any) => user.active);
+      return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
         console.error('Error fetching users:', error.message);
@@ -201,9 +201,9 @@ export const userAPI = {
     }
   },
 
-  deleteUser: async (id: string) => {
+  deleteUser: async (username: string) => {
     try {
-      const response = await authInstance.delete(`/auth/users/${id}`);
+      const response = await authInstance.delete(`/api/users/username/${username}`);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -250,6 +250,30 @@ export const itemsAPI = {
     } catch (error) {
       if (error instanceof AxiosError) {
         console.error('Error fetching items:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers,
+            baseURL: error.config?.baseURL
+          }
+        });
+      }
+      throw error;
+    }
+  },
+
+  reinitializeAllData: async () => {
+    try {
+      console.log('Reinitializing all data...');
+      const response = await axiosInstance.post('/items/reinitialize-all');
+      console.log('Reinitialization response:', response.data);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        console.error('Error reinitializing data:', {
           message: error.message,
           status: error.response?.status,
           data: error.response?.data,
@@ -376,21 +400,62 @@ export const categoriesAPI = {
 export const customizationAPI = {
   getCustomizations: async () => {
     try {
+      console.log('Fetching customizations...');
       const response = await axiosInstance.get('/customizations');
+      console.log('Customizations response:', {
+        status: response.status,
+        data: response.data
+      });
       return response.data;
     } catch (error) {
-      console.error('Error fetching customizations:', error);
-      throw error;
+      if (error instanceof AxiosError) {
+        console.error('Error fetching customizations:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers,
+            baseURL: error.config?.baseURL
+          }
+        });
+      } else {
+        console.error('Unknown error fetching customizations:', error);
+      }
+      // Return empty array instead of throwing to prevent dialog from failing
+      return [];
     }
   },
 
   getCustomizationsByCategory: async (categoryType: string) => {
     try {
+      console.log('Fetching customizations for category:', categoryType);
       const response = await axiosInstance.get(`/customizations/by-category/${categoryType}`);
+      console.log('Category customizations response:', {
+        status: response.status,
+        data: response.data
+      });
       return response.data;
     } catch (error) {
-      console.error('Error fetching customizations by category:', error);
-      throw error;
+      if (error instanceof AxiosError) {
+        console.error('Error fetching customizations by category:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+          categoryType,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers,
+            baseURL: error.config?.baseURL
+          }
+        });
+      } else {
+        console.error('Unknown error fetching customizations by category:', error);
+      }
+      // Return empty array instead of throwing
+      return [];
     }
   },
 
@@ -479,15 +544,31 @@ export const customerAPI = {
     firstName: string;
     lastName: string;
     dateOfBirth: string;
+    email?: string | null;
+    phone?: string | null;
+    member?: boolean;
   }) => {
     try {
-      const response = await axiosInstance.post('/customers', customer);
+      // Format the date to match backend expectation (YYYY-MM-DD)
+      const formattedDate = customer.dateOfBirth.split('/').reverse().join('-');
+      
+      const requestData = {
+        ...customer,
+        dateOfBirth: formattedDate,
+        // Ensure these fields are included
+        active: true,
+        member: customer.member ?? false
+      };
+
+      console.log('Creating customer with data:', requestData);
+      const response = await axiosInstance.post('/customers/register', requestData);
       return response.data;
     } catch (error: any) {
       console.error('Error creating customer:', {
         message: error.message,
         status: error.response?.status,
-        data: error.response?.data
+        data: error.response?.data,
+        requestData: customer
       });
       throw new Error(error.response?.data?.message || 'Failed to create customer');
     }

@@ -1,0 +1,3 @@
+name,type,basePrice,categoryId,description,active,smallPrice,mediumPrice,largePrice
+Americano,DRINKS,90,ESPRESSO_DRINKS,Espresso with hot water,TRUE,,,
+Blueberry Shake,DRINKS,180,BLENDED_DRINKS,,TRUE,,,

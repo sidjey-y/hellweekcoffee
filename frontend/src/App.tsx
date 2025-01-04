@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
@@ -17,6 +17,8 @@ import { setAuthErrorHandler } from './utils/axios';
 import PrivateRoute from './components/PrivateRoute';
 import CustomerManagement from './pages/CustomerManagement';
 import TransactionHistory from './pages/TransactionHistory';
+import ManagerDashboard from './pages/ManagerDashboard';
+import UserManagement from './pages/UserManagement';
 
 const RoleBasedRedirect = () => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -33,122 +35,70 @@ const RoleBasedRedirect = () => {
   return <Navigate to="/login" replace />;
 };
 
-function AppContent() {
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const dispatch = useDispatch<AppDispatch>();
+// Protected routes for managers
+const managerRoutes = [
+  { path: '/manager/dashboard', element: <ManagerDashboard /> },
+  { path: '/manager/items', element: <Items /> },
+  { path: '/pos', element: <POS /> },
+  { path: '/customer-management', element: <CustomerManagement /> },
+];
 
-  useEffect(() => {
-    dispatch(validateToken());
-  }, [dispatch]);
+// Protected routes for admins
+const adminRoutes = [
+  { path: '/admin/dashboard', element: <AdminDashboard /> },
+  { path: '/admin/users', element: <UserManagement /> },
+  { path: '/admin/items', element: <Items /> },
+  { path: '/pos', element: <POS /> },
+  { path: '/customer-management', element: <CustomerManagement /> },
+];
+
+// Protected routes for cashiers
+const cashierRoutes = [
+  { path: '/pos', element: <POS /> },
+  { path: '/customer-management', element: <CustomerManagement /> },
+];
+
+function AppContent() {
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const location = useLocation();
+
+  // If not authenticated and not on login page, redirect to login
+  if (!isAuthenticated && location.pathname !== '/login') {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If authenticated but on login page, redirect based on role
+  if (isAuthenticated && location.pathname === '/login') {
+    if (user?.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
+    if (user?.role === 'MANAGER') return <Navigate to="/manager/dashboard" replace />;
+    if (user?.role === 'CASHIER') return <Navigate to="/pos" replace />;
+  }
 
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route 
-        path="/login" 
-        element={
-          isAuthenticated ? <Navigate to="/" replace /> : <Login />
-        } 
-      />
-
-      {/* Admin Routes */}
-      <Route 
-        path="/admin/dashboard" 
-        element={
-          <PrivateRoute roles={['ADMIN']}>
-            <AdminDashboard />
-          </PrivateRoute>
-        } 
-      />
-
-      <Route 
-        path="/admin/items" 
-        element={
-          <PrivateRoute roles={['ADMIN', 'MANAGER']}>
-            <Items />
-          </PrivateRoute>
-        } 
-      />
-
-      <Route 
-        path="/admin/inventory" 
-        element={
-          <PrivateRoute roles={['ADMIN', 'MANAGER']}>
-            <Items />
-          </PrivateRoute>
-        } 
-      />
-
-      <Route 
-        path="/admin/users" 
-        element={
-          <PrivateRoute roles={['ADMIN']}>
-            <AdminUsers />
-          </PrivateRoute>
-        } 
-      />
-
-      {/* Manager Routes */}
-      <Route 
-        path="/manager/items" 
-        element={
-          <PrivateRoute roles={['MANAGER']}>
-            <Items />
-          </PrivateRoute>
-        } 
-      />
-
-      <Route 
-        path="/manager/inventory" 
-        element={
-          <PrivateRoute roles={['MANAGER']}>
-            <Items />
-          </PrivateRoute>
-        } 
-      />
-
-      {/* POS Route */}
-      <Route 
-        path="/pos" 
-        element={
-          <PrivateRoute roles={['ADMIN', 'CASHIER']}>
-            <POS />
-          </PrivateRoute>
-        } 
-      />
-
-      <Route 
-        path="/customers" 
-        element={
-          <PrivateRoute roles={['ADMIN', 'CASHIER']}>
-            <CustomerManagement />
-          </PrivateRoute>
-        } 
-      />
-
-      {/* Protected Routes */}
-      <Route 
-        path="/transactions" 
-        element={
-          <PrivateRoute roles={['ADMIN', 'CASHIER']}>
-            <TransactionHistory />
-          </PrivateRoute>
-        } 
-      />
-
-      {/* Root Route */}
-      <Route 
-        path="/" 
-        element={
-          !isAuthenticated ? (
-            <Navigate to="/login" replace />
-          ) : (
-            <RoleBasedRedirect />
-          )
-        } 
-      />
-
-      {/* Catch all other routes */}
+      <Route path="/login" element={<Login />} />
+      
+      {/* Public routes */}
+      <Route path="/" element={<RoleBasedRedirect />} />
+      
+      {/* Protected routes */}
+      {isAuthenticated && (
+        <>
+          {user?.role === 'ADMIN' && adminRoutes.map(route => (
+            <Route key={route.path} path={route.path} element={route.element} />
+          ))}
+          
+          {user?.role === 'MANAGER' && managerRoutes.map(route => (
+            <Route key={route.path} path={route.path} element={route.element} />
+          ))}
+          
+          {user?.role === 'CASHIER' && cashierRoutes.map(route => (
+            <Route key={route.path} path={route.path} element={route.element} />
+          ))}
+        </>
+      )}
+      
+      {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

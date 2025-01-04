@@ -27,7 +27,6 @@ public class CustomizationService {
             return;
         }
 
-        // Drink customizations
         Map<String, Double> milkOptions = Map.of(
             "Soy Milk", 35.0,
             "Oat Milk", 40.0,
@@ -56,7 +55,6 @@ public class CustomizationService {
         );
         createCustomization("TOPPINGS", "Extra Toppings", toppingOptions, CategoryType.BLENDED_DRINKS);
 
-        // Food customizations
         Map<String, Double> riceOptions = Map.of(
             "Garlic Rice", 20.0,
             "Yang Chow Rice", 30.0,
@@ -86,7 +84,6 @@ public class CustomizationService {
         customization.setCategoryType(categoryType);
         customization.setActive(true);
 
-        // Create and add CustomizationOption entities
         optionsWithPrices.forEach((optionName, price) -> {
             CustomizationOption option = new CustomizationOption();
             option.setName(optionName);
@@ -111,11 +108,9 @@ public class CustomizationService {
         Customization existingCustomization = customizationRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Customization not found with id: " + id));
 
-        // Update basic fields
         existingCustomization.setName(updatedCustomization.getName());
         existingCustomization.setCategoryType(updatedCustomization.getCategoryType());
 
-        // Clear existing options and add new ones
         existingCustomization.getOptions().clear();
         updatedCustomization.getOptions().forEach(option -> {
             CustomizationOption newOption = new CustomizationOption();
@@ -129,7 +124,6 @@ public class CustomizationService {
 
     @Transactional
     public Customization createCustomization(Customization customization) {
-        // Generate a code based on the name
         String code = customization.getName()
             .toUpperCase()
             .replaceAll("[^A-Z]", "")
@@ -138,7 +132,6 @@ public class CustomizationService {
         customization.setCode(code);
         customization.setActive(true);
 
-        // Create new CustomizationOption entities
         List<CustomizationOption> newOptions = customization.getOptions().stream()
             .map(option -> {
                 CustomizationOption newOption = new CustomizationOption();
@@ -152,5 +145,33 @@ public class CustomizationService {
         newOptions.forEach(customization::addOption);
 
         return customizationRepository.save(customization);
+    }
+
+    @Transactional
+    public void reinitializeCustomizations() {
+        // Clear all existing customizations
+        customizationRepository.deleteAll();
+        
+        // Initialize customizations
+        Map<String, Double> milkOptions = Map.of(
+            "Soy Milk", 35.0,
+            "Oat Milk", 40.0,
+            "Almond Milk", 35.0
+        );
+        createCustomization("MILK", "Milk Options", milkOptions, CategoryType.ESPRESSO_DRINKS);
+
+        Map<String, Double> syrupOptions = Map.of(
+            "Vanilla", 25.0,
+            "Caramel", 25.0,
+            "Hazelnut", 25.0
+        );
+        createCustomization("SYRUP", "Syrup Options", syrupOptions, CategoryType.ESPRESSO_DRINKS);
+
+        Map<String, Double> toppingsOptions = Map.of(
+            "Whipped Cream", 20.0,
+            "Chocolate Chips", 15.0,
+            "Caramel Drizzle", 15.0
+        );
+        createCustomization("TOPPINGS", "Toppings", toppingsOptions, CategoryType.BLENDED_DRINKS);
     }
 }

@@ -1,9 +1,7 @@
 name,type,basePrice,categoryId,description,active,smallPrice,mediumPrice,largePrice
-Caramel Macchiato,DRINKS,150,ESPRESSO_DRINKS,Rich espresso with vanilla-flavored syrup marked with caramel sauce,true,130,150,170
-Mocha Frappuccino,DRINKS,160,BLENDED_DRINKS,Coffee blended with mocha sauce and milk,true,140,160,180
-Green Tea Latte,DRINKS,140,TEA,Premium green tea with steamed milk,true,120,140,160
-Chocolate Croissant,FOOD,85,PASTRIES,Buttery croissant filled with rich chocolate,true,,,
-Blueberry Cheesecake,FOOD,120,CAKES,Classic cheesecake topped with fresh blueberries,true,,,
-Chicken Pesto Sandwich,FOOD,95,SANDWICHES,Grilled chicken with pesto sauce and fresh vegetables,true,,,
-Classic Tumbler,MERCHANDISE,450,MUGS,Stainless steel tumbler with classic design,true,,,
-Coffee Bean Tote Bag,MERCHANDISE,350,BAGS,Canvas tote bag with coffee bean design,true,,, 
+Blueberry Cheesecake,FOOD,120,CAKES,Classic cheesecake topped with fresh blueberries,TRUE,,,
+Chicken Pesto Sandwich,FOOD,95,SANDWICHES,Grilled chicken with pesto sauce and fresh vegetables,TRUE,,,
+Classic Tumbler,MERCHANDISE,450,MUGS,Stainless steel tumbler with classic design,TRUE,,,
+Coffee Bean Tote Bag,MERCHANDISE,350,BAGS,Canvas tote bag with coffee bean design,TRUE,,, 
+Espresso Con Panna,DRINKS,100,ESPRESSO_DRINKS,Espresso meets a dollop of whipped cream ,TRUE,,,
+White Mocha Frappuccino,DRINKS,180,BLENDED_DRINKS,"White chocolate Frappuccino roast coffee, milk and ice",TRUE,,,

@@ -58,9 +58,17 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/items/**", "/items/**")
                 .hasAnyAuthority("ROLE_CASHIER", "ROLE_MANAGER", "ROLE_ADMIN")
                 
-                // Categories management
-                .requestMatchers("/api/categories/**", "/categories/**")
+                // Categories management - Write operations
+                .requestMatchers(HttpMethod.POST, "/api/categories/**", "/categories/**")
                 .hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/categories/**", "/categories/**")
+                .hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/categories/**", "/categories/**")
+                .hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")
+                
+                // Categories management - Read operations
+                .requestMatchers(HttpMethod.GET, "/api/categories/**", "/categories/**")
+                .hasAnyAuthority("ROLE_CASHIER", "ROLE_MANAGER", "ROLE_ADMIN")
                 
                 // Manager and Admin endpoints
                 .requestMatchers(

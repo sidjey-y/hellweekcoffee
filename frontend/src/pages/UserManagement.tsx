@@ -19,6 +19,11 @@ import {
   DialogContent,
   DialogActions,
   Chip,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -26,6 +31,8 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   Logout as LogoutIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -36,10 +43,28 @@ import { userAPI } from '../services/api';
 interface User {
   id: number;
   username: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   role: string;
+}
+
+type FormData = Omit<User, 'id'>;
+
+interface AddFormData extends FormData {
+  password: string;
+  birthDate: string;
+}
+
+interface FormErrors {
+  username?: string;
+  password?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  role?: string;
+  birthDate?: string;
 }
 
 const UserManagement = () => {
@@ -49,6 +74,29 @@ const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState<FormData>({
+    username: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    role: '',
+  });
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addFormData, setAddFormData] = useState<AddFormData>({
+    username: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    role: '',
+    password: '',
+    birthDate: '',
+  });
+  const [addFormErrors, setAddFormErrors] = useState<FormErrors>({});
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -78,7 +126,7 @@ const UserManagement = () => {
     if (!userToDelete) return;
 
     try {
-      await userAPI.deleteUser(userToDelete.id.toString());
+      await userAPI.deleteUser(userToDelete.username);
       enqueueSnackbar('User deleted successfully', { variant: 'success' });
       setDeleteDialogOpen(false);
       setUserToDelete(null);
@@ -87,6 +135,133 @@ const UserManagement = () => {
       console.error('Error deleting user:', error);
       enqueueSnackbar('Failed to delete user', { variant: 'error' });
     }
+  };
+
+  const handleEditClick = (user: User) => {
+    setUserToEdit(user);
+    setEditFormData({
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email || '',
+      phone: user.phone || '',
+      role: user.role,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!userToEdit) return;
+
+    try {
+      const userData = {
+        username: editFormData.username,
+        firstName: editFormData.firstName,
+        lastName: editFormData.lastName,
+        email: editFormData.email || undefined,
+        phone: editFormData.phone || undefined,
+        role: editFormData.role,
+      };
+
+      await userAPI.updateUser(userToEdit.id.toString(), userData);
+      enqueueSnackbar('User updated successfully', { variant: 'success' });
+      setEditDialogOpen(false);
+      setUserToEdit(null);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      enqueueSnackbar('Failed to update user', { variant: 'error' });
+    }
+  };
+
+  const validateAddForm = (): boolean => {
+    const errors: FormErrors = {};
+    
+    if (!addFormData.username.trim()) {
+      errors.username = 'Username is required';
+    }
+    if (!addFormData.password.trim()) {
+      errors.password = 'Password is required';
+    } else if (addFormData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    }
+    if (!addFormData.firstName.trim()) {
+      errors.firstName = 'First name is required';
+    }
+    if (!addFormData.lastName.trim()) {
+      errors.lastName = 'Last name is required';
+    }
+    if (addFormData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addFormData.email)) {
+      errors.email = 'Invalid email format';
+    }
+    if (!addFormData.role) {
+      errors.role = 'Role is required';
+    }
+    if (!addFormData.birthDate) {
+      errors.birthDate = 'Birth date is required';
+    } else {
+      const birthDate = new Date(addFormData.birthDate);
+      const today = new Date();
+      if (birthDate > today) {
+        errors.birthDate = 'Birth date must be in the past';
+      }
+    }
+
+    setAddFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleAddSubmit = async () => {
+    if (!validateAddForm()) {
+      return;
+    }
+
+    try {
+      const userData = {
+        username: addFormData.username,
+        firstName: addFormData.firstName,
+        lastName: addFormData.lastName,
+        email: addFormData.email || undefined,
+        phone: addFormData.phone || undefined,
+        role: addFormData.role,
+        password: addFormData.password,
+        birthDate: addFormData.birthDate,
+      };
+
+      await userAPI.createUser(userData);
+      enqueueSnackbar('User created successfully', { variant: 'success' });
+      setAddDialogOpen(false);
+      setAddFormData({
+        username: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        role: '',
+        password: '',
+        birthDate: '',
+      });
+      setAddFormErrors({});
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to create user';
+      setAddFormErrors(prev => ({
+        ...prev,
+        username: errorMessage
+      }));
+      enqueueSnackbar(errorMessage, { 
+        variant: 'error',
+        anchorOrigin: {
+          vertical: 'top',
+          horizontal: 'center'
+        }
+      });
+    }
+  };
+
+  const handleTogglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -148,7 +323,7 @@ const UserManagement = () => {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => navigate('/admin/users/new')}
+              onClick={() => setAddDialogOpen(true)}
               sx={{ 
                 backgroundColor: '#4d351d',
                 '&:hover': {
@@ -205,7 +380,7 @@ const UserManagement = () => {
                       }}
                     >
                       <TableCell sx={{ fontSize: '0.9rem' }}>{user.username}</TableCell>
-                      <TableCell sx={{ fontSize: '0.9rem' }}>{user.name}</TableCell>
+                      <TableCell sx={{ fontSize: '0.9rem' }}>{`${user.firstName} ${user.lastName}`}</TableCell>
                       <TableCell sx={{ fontSize: '0.9rem' }}>{user.email || '-'}</TableCell>
                       <TableCell sx={{ fontSize: '0.9rem' }}>{user.phone || '-'}</TableCell>
                       <TableCell>
@@ -222,7 +397,7 @@ const UserManagement = () => {
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <IconButton
-                            onClick={() => navigate(`/admin/users/edit/${user.id}`)}
+                            onClick={() => handleEditClick(user)}
                             color="primary"
                             size="small"
                             title="Edit User"
@@ -289,7 +464,7 @@ const UserManagement = () => {
             <DialogContent sx={{ mt: 2 }}>
               <Typography>
                 Are you sure you want to delete user{' '}
-                <strong>{userToDelete?.name}</strong>?
+                <strong>{userToDelete ? `${userToDelete.firstName} ${userToDelete.lastName}` : ''}</strong>?
                 This action cannot be undone.
               </Typography>
             </DialogContent>
@@ -312,6 +487,267 @@ const UserManagement = () => {
                 }}
               >
                 Delete
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Edit User Dialog */}
+          <Dialog
+            open={editDialogOpen}
+            onClose={() => setEditDialogOpen(false)}
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                width: '100%',
+                maxWidth: '500px'
+              }
+            }}
+          >
+            <DialogTitle 
+              sx={{ 
+                backgroundColor: '#4d351d',
+                color: 'white',
+                fontWeight: 'bold'
+              }}
+            >
+              Edit User
+            </DialogTitle>
+            <DialogContent sx={{ mt: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Username"
+                  value={editFormData.username}
+                  disabled
+                />
+                <TextField
+                  fullWidth
+                  label="First Name"
+                  value={editFormData.firstName}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  label="Last Name"
+                  value={editFormData.lastName}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
+                />
+                <TextField
+                  fullWidth
+                  label="Phone"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, phone: e.target.value }))}
+                />
+                <FormControl fullWidth>
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={editFormData.role}
+                    label="Role"
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, role: e.target.value }))}
+                  >
+                    <MenuItem value="ADMIN">Admin</MenuItem>
+                    <MenuItem value="MANAGER">Manager</MenuItem>
+                    <MenuItem value="CASHIER">Cashier</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+            </DialogContent>
+            <DialogActions sx={{ p: 2, pt: 0 }}>
+              <Button 
+                onClick={() => setEditDialogOpen(false)}
+                sx={{ color: 'text.secondary' }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleEditSubmit}
+                variant="contained" 
+                sx={{ 
+                  backgroundColor: '#4d351d',
+                  fontWeight: 'bold',
+                  '&:hover': {
+                    backgroundColor: '#362513'
+                  }
+                }}
+              >
+                Save Changes
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Add User Dialog */}
+          <Dialog
+            open={addDialogOpen}
+            onClose={() => {
+              setAddDialogOpen(false);
+              setAddFormErrors({});
+            }}
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                width: '100%',
+                maxWidth: '500px'
+              }
+            }}
+          >
+            <DialogTitle 
+              sx={{ 
+                backgroundColor: '#4d351d',
+                color: 'white',
+                fontWeight: 'bold'
+              }}
+            >
+              Add New User
+            </DialogTitle>
+            <DialogContent sx={{ mt: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Username"
+                  value={addFormData.username}
+                  onChange={(e) => setAddFormData(prev => ({ ...prev, username: e.target.value }))}
+                  required
+                  error={!!addFormErrors.username}
+                  helperText={addFormErrors.username}
+                  FormHelperTextProps={{
+                    sx: { color: 'error.main' }
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={addFormData.password}
+                  onChange={(e) => setAddFormData(prev => ({ ...prev, password: e.target.value }))}
+                  required
+                  error={!!addFormErrors.password}
+                  helperText={addFormErrors.password}
+                  FormHelperTextProps={{
+                    sx: { color: 'error.main' }
+                  }}
+                  InputProps={{
+                    endAdornment: (
+                      <IconButton
+                        onClick={handleTogglePasswordVisibility}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    ),
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="First Name"
+                  value={addFormData.firstName}
+                  onChange={(e) => setAddFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  required
+                  error={!!addFormErrors.firstName}
+                  helperText={addFormErrors.firstName}
+                  FormHelperTextProps={{
+                    sx: { color: 'error.main' }
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Last Name"
+                  value={addFormData.lastName}
+                  onChange={(e) => setAddFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  required
+                  error={!!addFormErrors.lastName}
+                  helperText={addFormErrors.lastName}
+                  FormHelperTextProps={{
+                    sx: { color: 'error.main' }
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  value={addFormData.email}
+                  onChange={(e) => setAddFormData(prev => ({ ...prev, email: e.target.value }))}
+                  error={!!addFormErrors.email}
+                  helperText={addFormErrors.email}
+                  FormHelperTextProps={{
+                    sx: { color: 'error.main' }
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Phone"
+                  value={addFormData.phone}
+                  onChange={(e) => setAddFormData(prev => ({ ...prev, phone: e.target.value }))}
+                />
+                <TextField
+                  fullWidth
+                  label="Birth Date"
+                  type="date"
+                  value={addFormData.birthDate}
+                  onChange={(e) => setAddFormData(prev => ({ ...prev, birthDate: e.target.value }))}
+                  required
+                  error={!!addFormErrors.birthDate}
+                  helperText={addFormErrors.birthDate}
+                  FormHelperTextProps={{
+                    sx: { color: 'error.main' }
+                  }}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+                <FormControl 
+                  fullWidth 
+                  required
+                  error={!!addFormErrors.role}
+                >
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={addFormData.role}
+                    label="Role"
+                    onChange={(e) => setAddFormData(prev => ({ ...prev, role: e.target.value }))}
+                  >
+                    <MenuItem value="ADMIN">Admin</MenuItem>
+                    <MenuItem value="MANAGER">Manager</MenuItem>
+                    <MenuItem value="CASHIER">Cashier</MenuItem>
+                  </Select>
+                  {addFormErrors.role && (
+                    <Typography variant="caption" color="error.main" sx={{ mt: 0.5, ml: 2 }}>
+                      {addFormErrors.role}
+                    </Typography>
+                  )}
+                </FormControl>
+              </Box>
+            </DialogContent>
+            <DialogActions sx={{ p: 2, pt: 0 }}>
+              <Button 
+                onClick={() => {
+                  setAddDialogOpen(false);
+                  setAddFormErrors({});
+                }}
+                sx={{ color: 'text.secondary' }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAddSubmit}
+                variant="contained" 
+                sx={{ 
+                  backgroundColor: '#4d351d',
+                  fontWeight: 'bold',
+                  '&:hover': {
+                    backgroundColor: '#362513'
+                  }
+                }}
+              >
+                Add User
               </Button>
             </DialogActions>
           </Dialog>

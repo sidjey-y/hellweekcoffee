@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
   Box,
@@ -23,6 +23,10 @@ import {
   AppBar,
   Toolbar,
   colors,
+  InputAdornment,
+  Card,
+  CardMedia,
+  CardContent,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -34,15 +38,18 @@ import {
   Cancel as CancelIcon,
   Person as PersonIcon,
   ArrowBack as ArrowBackIcon,
+  NoFood as NoFoodIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
 import { useSnackbar } from 'notistack';
-import { Item, ItemType, ITEM_TYPES, Size } from '../types/item';
+import { Item, ItemType, ITEM_TYPES, Size, isDrinkType, CategoryType, CATEGORY_TYPES } from '../types/item';
 import { Category } from '../types/category';
 import { itemsAPI, customizationAPI, categoriesAPI, customerAPI, transactionAPI } from '../services/api';
 import { axiosInstance } from '../utils/axios';
+import ChangePasswordDialog from '../components/ChangePasswordDialog';
 
 interface CustomizationOption {
   id: number;
@@ -54,7 +61,7 @@ interface Customization {
   id: number;
   code: string;
   name: string;
-  categoryType: ItemType;
+  categoryType: CategoryType;
   options: CustomizationOption[];
   active: boolean;
 }
@@ -88,13 +95,26 @@ const isValidSize = (size: string): size is Size => {
   return ['SMALL', 'MEDIUM', 'LARGE'].includes(size);
 };
 
-const POS = () => {
+const getCategoryParentType = (categoryType: CategoryType): ItemType => {
+  for (const [itemType, categories] of Object.entries(CATEGORY_TYPES)) {
+    if (categories.includes(categoryType)) {
+      return itemType as ItemType;
+    }
+  }
+  return 'MERCHANDISE';
+};
+
+const POS: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { enqueueSnackbar } = useSnackbar();
   const [isTransactionStarted, setIsTransactionStarted] = useState(false);
   const [customerInfoDialogOpen, setCustomerInfoDialogOpen] = useState(false);
   const [isGuestOrder, setIsGuestOrder] = useState(true);
+  const [fullNameError, setFullNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [birthdateError, setBirthdateError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     id: undefined,
     firstName: '',
@@ -123,11 +143,28 @@ const POS = () => {
   const [discount, setDiscount] = useState(0);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
   const [promoCodeError, setPromoCodeError] = useState<string>('');
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [customerNameError, setCustomerNameError] = useState('');
+  const [basePrice, setBasePrice] = useState('');
+  const [itemName, setItemName] = useState('');
+  const [itemNameError, setItemNameError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchCategories();
     fetchItems();
   }, []);
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesType = !selectedType || item.type === selectedType;
+      const matchesSearch = !searchQuery || 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+      return matchesType && matchesSearch;
+    });
+  }, [items, selectedType, searchQuery]);
 
   const fetchCategories = async () => {
     try {
@@ -142,7 +179,20 @@ const POS = () => {
   const fetchItems = async () => {
     try {
       const data = await itemsAPI.getItems();
-      setItems(data);
+      const itemsWithImages = data.map((item: Item) => {
+        const imageUrl = `/images/items/${item.type.toLowerCase()}/${item.code.toLowerCase()}.png`;
+        console.log(`Constructing image URL for ${item.name}:`, {
+          type: item.type.toLowerCase(),
+          code: item.code.toLowerCase(),
+          fullPath: imageUrl
+        });
+        return {
+          ...item,
+          imageUrl
+        };
+      });
+      console.log('Items with images:', itemsWithImages);
+      setItems(itemsWithImages);
     } catch (error) {
       console.error('Error fetching items:', error);
       enqueueSnackbar('Failed to fetch items', { variant: 'error' });
@@ -155,6 +205,7 @@ const POS = () => {
   };
 
   const handleItemSelect = async (item: Item) => {
+    console.log('handleItemSelect called with item:', item);
     setSelectedItem(item);
     setQuantity(1);
     setSize('MEDIUM');
@@ -162,30 +213,38 @@ const POS = () => {
     setSelectedCustomizations({});
     
     try {
-      console.log('Selected item:', item);
+      console.log('Fetching customizations for item:', {
+        itemName: item.name,
+        itemType: item.type,
+        categoryType: item.category.type
+      });
       const customizations = await customizationAPI.getCustomizations();
       console.log('Raw customizations from API:', customizations);
       
-      // Filter customizations based on the item's category type
       const filteredCustomizations = customizations.filter((c: Customization) => {
-        console.log('Checking customization:', {
-          id: c.id,
-          name: c.name,
-          categoryType: c.categoryType,
-          itemCategory: item.category.type,
-          active: c.active
+        console.log('Checking customization for match:', {
+          customizationId: c.id,
+          customizationName: c.name,
+          customizationType: c.categoryType,
+          itemCategoryType: item.category.type,
+          isActive: c.active,
+          isMatch: c.categoryType === item.category.type && c.active
         });
-        // Convert both to strings for comparison since they're from different enums
-        return c.categoryType.toString() === item.category.type.toString() && c.active;
+        return c.categoryType === item.category.type && c.active;
       });
       
-      console.log('Filtered customizations:', filteredCustomizations);
+      console.log('Filtered customizations result:', {
+        total: customizations.length,
+        filtered: filteredCustomizations.length,
+        customizations: filteredCustomizations
+      });
       setAvailableCustomizations(filteredCustomizations);
     } catch (error) {
       console.error('Error fetching customizations:', error);
       enqueueSnackbar('Failed to fetch customizations', { variant: 'error' });
     }
     
+    console.log('Opening customization dialog');
     setIsCustomizeDialogOpen(true);
   };
 
@@ -201,9 +260,8 @@ const POS = () => {
   const handleAddToOrder = () => {
     if (!selectedItem) return;
 
-    // Convert selected customizations to order customizations
     const orderCustomizations = Object.entries(selectedCustomizations)
-      .filter(([_, value]) => value) // Filter out empty selections
+      .filter(([_, value]) => value)
       .map(([customizationId, selectedOptionName]) => {
         const customization = availableCustomizations.find(c => c.id.toString() === customizationId);
         if (!customization) return null;
@@ -225,7 +283,7 @@ const POS = () => {
     const newOrderItem: OrderItem = {
       item: selectedItem,
       quantity,
-      size: isValidSize(size) ? size : undefined,
+      size: selectedItem.type === ITEM_TYPES.DRINKS ? (isValidSize(size) ? size : undefined) : 'NS',
       customizations: orderCustomizations,
       totalPrice
     };
@@ -273,9 +331,7 @@ const POS = () => {
       return updated;
     });
 
-    // Update the customizations array with the selected option
     if (optionName === '') {
-      // Remove the customization if "None" is selected
       setCustomizations(prev => {
         const updated = prev.filter(c => c.id !== customizationId);
         console.log('Removed customization:', { customizationId, updated });
@@ -302,12 +358,10 @@ const POS = () => {
         const existingIndex = prev.findIndex(c => c.id === customizationId);
         let updated;
         if (existingIndex >= 0) {
-          // Replace existing customization
           updated = [...prev];
           updated[existingIndex] = newCustomization;
           console.log('Updated existing customization:', updated);
         } else {
-          // Add new customization
           updated = [...prev, newCustomization];
           console.log('Added new customization:', updated);
         }
@@ -318,7 +372,6 @@ const POS = () => {
 
   const handleCustomizationConfirm = () => {
     if (!selectedItem) return;
-
     handleAddToOrder();
   };
 
@@ -328,13 +381,11 @@ const POS = () => {
 
   const handlePrintReceipt = () => {
     try {
-      // Create print window
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         throw new Error('Could not open print window');
       }
 
-      // Create the receipt content
       const orderItemsHtml = orderItems.map(item => {
         const customizationsHtml = item.customizations
           .map(c => `<p style="margin-left: 20px; margin-top: 0; margin-bottom: 5px;">+ ${c.name}: ${c.option} (₱${c.price.toFixed(2)})</p>`)
@@ -342,7 +393,7 @@ const POS = () => {
 
         return `
           <div style="margin: 10px 0;">
-            <p style="margin: 0;">${item.quantity}x ${item.item.name} ${item.size ? `(${item.size})` : ''}</p>
+            <p style="margin: 0;">${item.quantity}x ${item.item.name} (${item.item.type === ITEM_TYPES.DRINKS ? item.size : 'NS'})</p>
             <p style="margin: 0;">₱${(item.totalPrice / item.quantity).toFixed(2)} each</p>
             ${customizationsHtml}
             <p style="margin: 5px 0 0; text-align: right;">Subtotal: ₱${item.totalPrice.toFixed(2)}</p>
@@ -390,7 +441,7 @@ const POS = () => {
               </div>
             </div>
             <script>
-              window.onload = () => {
+         window.onload = () => {
                 window.print();
                 window.onafterprint = () => window.close();
               };
@@ -399,11 +450,9 @@ const POS = () => {
         </html>
       `;
 
-      // Write and print
       printWindow.document.write(receiptHtml);
       printWindow.document.close();
 
-      // Complete transaction
       setIsReceiptDialogOpen(false);
       resetTransaction();
       enqueueSnackbar('Receipt printed successfully', { variant: 'success' });
@@ -416,6 +465,22 @@ const POS = () => {
   const handleLogout = () => {
     dispatch(logout());
     navigate('/login');
+  };
+
+  const resetTransaction = (): void => {
+    setIsTransactionStarted(false);
+    setOrderItems([]);
+    setCustomerInfo({
+      id: undefined,
+      firstName: '',
+      memberId: '',
+      fullName: '',
+      dateOfBirth: '',
+      email: '',
+      phoneNumber: '',
+    });
+    setIsGuestOrder(true);
+    setShowNewMemberForm(false);
   };
 
   const handleNewTransaction = () => {
@@ -432,25 +497,9 @@ const POS = () => {
       }
     } else {
       resetTransaction();
-      dispatch(logout());
+      dispatch     (logout());
       navigate('/login');
     }
-  };
-
-  const resetTransaction = () => {
-    setIsTransactionStarted(false);
-    setOrderItems([]);
-    setCustomerInfo({
-      id: undefined,
-      firstName: '',
-      memberId: '',
-      fullName: '',
-      dateOfBirth: '',
-      email: '',
-      phoneNumber: '',
-    });
-    setIsGuestOrder(true);
-    setShowNewMemberForm(false);
   };
 
   const handleCustomerTypeSelect = (isGuest: boolean) => {
@@ -475,240 +524,100 @@ const POS = () => {
   };
 
   const handleCustomerInfoSubmit = async () => {
-    if (!validateCustomerInfo()) {
-      enqueueSnackbar('Please fill in all required fields', { variant: 'error' });
-      return;
-    }
+    setCustomerNameError('');
+    setMemberIdError('');
 
     try {
       if (isGuestOrder) {
+        if (!customerInfo.firstName.trim()) {
+          setCustomerNameError('Please enter customer name before continuing');
+          return;
+        }
+        
         try {
-          // Create guest customer
-          const guestCustomer = await customerAPI.createCustomer({
-            firstName: customerInfo.firstName,
-            lastName: '',  // For guests, we only need first name
-            dateOfBirth: new Date().toISOString().split('T')[0], // Current date as default
+          const response = await customerAPI.createCustomer({
+            firstName: customerInfo.firstName.trim(),
+            lastName: '',
+            dateOfBirth: new Date().toISOString().split('T')[0],
+            email: null,
+            phone: null,
+            member: false
           });
+          
           setCustomerInfo(prev => ({
             ...prev,
-            id: guestCustomer.id
+            id: response.id
           }));
-          setCustomerInfoDialogOpen(false);
-          enqueueSnackbar('Guest customer added successfully', { variant: 'success' });
         } catch (error) {
           console.error('Error creating guest customer:', error);
-          enqueueSnackbar('Failed to create guest customer. Please try again.', { variant: 'error' });
-          return;
-        }
-      } else if (showNewMemberForm) {
-        // Basic validation for required fields
-        if (!customerInfo.fullName?.trim()) {
-          enqueueSnackbar('Please enter your name', { variant: 'error' });
-          return;
-        }
-
-        // Split full name - more lenient now, just needs at least one word
-        const nameParts = customerInfo.fullName.trim().split(/\s+/);
-        const firstName = nameParts[0];
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-
-        // Validate that at least email or phone is provided
-        if (!customerInfo.email && !customerInfo.phoneNumber) {
-          enqueueSnackbar('Please provide either an email or phone number', { variant: 'error' });
-          return;
-        }
-
-        // Email validation only if email is provided
-        if (customerInfo.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerInfo.email)) {
-          enqueueSnackbar('Please enter a valid email address', { variant: 'error' });
-          return;
-        }
-
-        // Phone validation only if phone is provided
-        if (customerInfo.phoneNumber && !/^\+?[\d\s-]{7,}$/.test(customerInfo.phoneNumber)) {
-          enqueueSnackbar('Please enter a valid phone number (at least 7 digits)', { variant: 'error' });
-          return;
-        }
-
-        // Date validation
-        if (!customerInfo.dateOfBirth) {
-          enqueueSnackbar('Please enter your date of birth', { variant: 'error' });
-          return;
-        }
-
-        try {
-          // Parse date more flexibly - accept both MM/DD/YYYY and YYYY-MM-DD formats
-          let formattedDate;
-          if (customerInfo.dateOfBirth.includes('/')) {
-            const [month, day, year] = customerInfo.dateOfBirth.split('/');
-            formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-          } else if (customerInfo.dateOfBirth.includes('-')) {
-            formattedDate = customerInfo.dateOfBirth; // Already in YYYY-MM-DD format
-          } else {
-            enqueueSnackbar('Please enter date in MM/DD/YYYY format', { variant: 'error' });
-            return;
-          }
-
-          // Validate date is valid
-          if (isNaN(Date.parse(formattedDate))) {
-            enqueueSnackbar('Please enter a valid date', { variant: 'error' });
-            return;
-          }
-
-          // Show loading message
-          enqueueSnackbar('Registering new member...', { 
-            variant: 'info',
-            autoHideDuration: 2000
-          });
-
-          // Register new member
-          const newMember = await customerAPI.registerMember({
-            firstName: firstName,
-            lastName: lastName || firstName, // Use firstName as lastName if no lastName provided
-            email: customerInfo.email || '',
-            phone: customerInfo.phoneNumber || '',
-            dateOfBirth: formattedDate,
-          });
-
-          console.log('Registration successful:', newMember);
-
-          if (!newMember || !newMember.id) {
-            enqueueSnackbar('Failed to create member: Invalid server response', { 
-              variant: 'error',
-              autoHideDuration: 4000
-            });
-            return;
-          }
-
-          // Update customer info with the new member data
-          setCustomerInfo(prev => ({
-            ...prev,
-            id: newMember.id,
-            memberId: newMember.membershipId,
-            firstName: newMember.firstName,
-            fullName: `${newMember.firstName} ${newMember.lastName}`,
-          }));
-
-          // Show success message
-          if (newMember.emailError) {
-            enqueueSnackbar(`New member registered successfully! Membership ID: ${newMember.membershipId}. Note: Welcome email could not be sent.`, { 
-              variant: 'warning',
-              autoHideDuration: 8000
-            });
-          } else {
-            enqueueSnackbar(`New member registered successfully! Membership ID: ${newMember.membershipId}`, { 
-              variant: 'success',
-              autoHideDuration: 6000
-            });
-          }
-
-          // Close the dialog after successful registration
-          setCustomerInfoDialogOpen(false);
-          setShowNewMemberForm(false);
-
-        } catch (error: any) {
-          console.error('Error registering new member:', error);
-          
-          let errorMessage = 'Failed to register member. Please try again.';
-          let additionalMessage: string | null = null;
-
-          if (error.response?.status === 500) {
-            // Check if this is a mail error but member was created
-            if (error.response.data?.customer && error.response.data?.error?.includes('MailAuthenticationException')) {
-              const customer = error.response.data.customer;
-              // Update customer info
-              setCustomerInfo(prev => ({
-                ...prev,
-                id: customer.id,
-                memberId: customer.membershipId,
-                firstName: customer.firstName,
-                fullName: `${customer.firstName} ${customer.lastName}`,
-              }));
-              
-              enqueueSnackbar(`New member registered successfully! Membership ID: ${customer.membershipId}. Note: Welcome email could not be sent.`, { 
-                variant: 'warning',
-                autoHideDuration: 8000
-              });
-              
-              // Close dialogs since registration was successful
-              setCustomerInfoDialogOpen(false);
-              setShowNewMemberForm(false);
-              return;
-            }
-            
-            errorMessage = 'Server error: ' + (error.response.data?.message || 'An internal server error occurred');
-            additionalMessage = 'Please contact support if the problem persists.';
-          } else if (error.response?.status === 400) {
-            errorMessage = 'Invalid member data: ' + (error.response.data?.message || 'Please check your input');
-          } else if (error.response?.status === 409) {
-            errorMessage = 'Member already exists: ' + (error.response.data?.message || 'Please try with different details');
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
-            
-          // Show the main error message
-          enqueueSnackbar(errorMessage, { 
-            variant: 'error',
-            autoHideDuration: 4000
-          });
-
-          // Show additional message if exists
-          if (additionalMessage) {
-            setTimeout(() => {
-              enqueueSnackbar(additionalMessage, {
-                variant: 'warning',
-                autoHideDuration: 4000
-              });
-            }, 1000);
-          }
-        }
-      } else {
-        // Verify existing member
-        if (!customerInfo.memberId) {
-          enqueueSnackbar('Please enter a membership ID', { variant: 'error' });
-          setMemberIdError('Please enter a membership ID');
-          return;
-        }
-
-        try {
-          const memberResponse = await customerAPI.getCustomerByMemberId(customerInfo.memberId);
-          if (!memberResponse || !memberResponse.id) {
-            const errorMsg = 'Membership ID wrong please try again';
-            enqueueSnackbar(errorMsg, { variant: 'error' });
-            setMemberIdError(errorMsg);
-            setCustomerInfo(prev => ({
-              ...prev,
-              memberId: ''  // Clear the membership ID field
-            }));
-            return;
-          }
-          setMemberIdError(''); // Clear error on success
-          setCustomerInfo(prev => ({
-            ...prev,
-            id: memberResponse.id,
-            firstName: memberResponse.firstName,
-            fullName: `${memberResponse.firstName} ${memberResponse.lastName}`,
-            email: memberResponse.email || '',
-            phoneNumber: memberResponse.phone || '',
-            dateOfBirth: memberResponse.birthDate || '',
-          }));
-          setCustomerInfoDialogOpen(false);
-          enqueueSnackbar('Member found successfully', { variant: 'success' });
-        } catch (error) {
-          console.error('Error verifying member:', error);
-          const errorMsg = 'Membership ID wrong please try again';
-          enqueueSnackbar(errorMsg, { variant: 'error' });
-          setMemberIdError(errorMsg);
-          setCustomerInfo(prev => ({
-            ...prev,
-            memberId: ''  // Clear the membership ID field
-          }));
+          enqueueSnackbar('Failed to create guest customer', { variant: 'error' });
           return;
         }
       }
+      else if (!isGuestOrder && showNewMemberForm) {
+        if (!customerInfo.fullName.trim() || !customerInfo.dateOfBirth || 
+            (!customerInfo.email.trim() && !customerInfo.phoneNumber.trim())) {
+          enqueueSnackbar('Please fill in all required fields', { variant: 'error' });
+          return;
+        }
+
+        const [firstName, ...lastNameParts] = customerInfo.fullName.trim().split(' ');
+        const lastName = lastNameParts.join(' ');
+
+        try {
+          let formattedDate = customerInfo.dateOfBirth;
+          if (customerInfo.dateOfBirth.includes('/')) {
+            formattedDate = customerInfo.dateOfBirth.split('/').reverse().join('-');
+          }
+
+          const response = await customerAPI.createCustomer({
+            firstName,
+            lastName,
+            dateOfBirth: formattedDate,
+            email: customerInfo.email.trim() || null,
+            phone: customerInfo.phoneNumber.trim() || null,
+            member: true
+          });
+          
+          setCustomerInfo(prev => ({
+            ...prev,
+            id: response.id,
+            memberId: response.membershipId || ''
+          }));
+          
+          enqueueSnackbar('Member registered successfully!', { variant: 'success' });
+        } catch (error) {
+          console.error('Error registering member:', error);
+          enqueueSnackbar('Failed to register member', { variant: 'error' });
+          return;
+        }
+      }
+      else if (!isGuestOrder && !showNewMemberForm) {
+        if (!customerInfo.memberId) {
+          setMemberIdError('Please enter a valid membership ID');
+          return;
+        }
+        
+        try {
+          const member = await customerAPI.getCustomerByMemberId(customerInfo.memberId);
+          setCustomerInfo(prev => ({
+            ...prev,
+            id: member.id,
+            firstName: member.firstName,
+            fullName: `${member.firstName} ${member.lastName}`
+          }));
+        } catch (error) {
+          console.error('Error validating member:', error);
+          setMemberIdError('Invalid membership ID');
+          return;
+        }
+      }
+
+      setIsTransactionStarted(true);
+      setCustomerInfoDialogOpen(false);
     } catch (error) {
-      console.error('Error handling customer:', error);
-      enqueueSnackbar('An unexpected error occurred. Please try again.', { variant: 'error' });
+      console.error('Error in customer info submission:', error);
+      enqueueSnackbar('An error occurred. Please try again.', { variant: 'error' });
     }
   };
 
@@ -784,15 +693,89 @@ const POS = () => {
     return subtotal - discount;
   };
 
-  // Customer Information Dialog
+  const handleBasePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '' || /^\d+\.?\d{0,2}$/.test(value)) {
+      const numValue = value === '' ? '' : Number(value).toString();
+      setBasePrice(numValue);
+    }
+  };
+
+  const validateItemName = (name: string) => {
+    const isDuplicate = items.some(item => 
+      item.name.toLowerCase() === name.toLowerCase()
+    );
+    if (isDuplicate) {
+      setItemNameError('This item name already exists');
+      return false;
+    }
+    setItemNameError('');
+    return true;
+  };
+
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const validateBirthdate = (date: string) => {
+    const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!regex.test(date)) return false;
+    
+    const [month, day, year] = date.split('/').map(Number);
+    const birthDate = new Date(year, month - 1, day);
+    const today = new Date();
+    
+    return birthDate < today && birthDate.getFullYear() > 1900;
+  };
+
+  const validatePhone = (phone: string) => {
+    return /^\d+$/.test(phone);
+  };
+
+  const handleCustomerInfoChange = (field: keyof CustomerInfo, value: string) => {
+    setCustomerInfo(prev => ({ ...prev, [field]: value }));
+    
+    switch (field) {
+      case 'fullName':
+        setFullNameError(!value.trim() ? 'Full name is required' : 
+          value.trim().split(' ').length < 2 ? 'Please enter both first and last name' : '');
+        break;
+      case 'email':
+        if (value.trim() && !validateEmail(value.trim())) {
+          setEmailError('Please enter a valid email address');
+        } else {
+          setEmailError('');
+        }
+        break;
+      case 'dateOfBirth':
+        if (!validateBirthdate(value)) {
+          setBirthdateError('Please enter a valid date in MM/DD/YYYY format');
+        } else {
+          setBirthdateError('');
+        }
+        break;
+      case 'phoneNumber':
+        if (value.trim() && !validatePhone(value.trim())) {
+          setPhoneError('Phone number must contain only numbers');
+        } else {
+          setPhoneError('');
+        }
+        break;
+    }
+  };
+
   const renderCustomerInfoDialog = () => (
     <Dialog 
       open={customerInfoDialogOpen} 
       onClose={() => {
-        // Only allow closing if it's not a new transaction
         if (!isTransactionStarted) {
           setCustomerInfoDialogOpen(false);
           setMemberIdError('');
+          setCustomerNameError('');
+          setFullNameError('');
+          setEmailError('');
+          setBirthdateError('');
+          setPhoneError('');
           setShowNewMemberForm(false);
         }
       }}
@@ -813,6 +796,11 @@ const POS = () => {
                 onClick={() => {
                   handleCustomerTypeSelect(true);
                   setMemberIdError('');
+                  setCustomerNameError('');
+                  setFullNameError('');
+                  setEmailError('');
+                  setBirthdateError('');
+                  setPhoneError('');
                 }}
               >
                 Guest
@@ -825,6 +813,11 @@ const POS = () => {
                 onClick={() => {
                   handleCustomerTypeSelect(false);
                   setMemberIdError('');
+                  setCustomerNameError('');
+                  setFullNameError('');
+                  setEmailError('');
+                  setBirthdateError('');
+                  setPhoneError('');
                 }}
               >
                 Member
@@ -837,9 +830,17 @@ const POS = () => {
               fullWidth
               label="Guest Name"
               value={customerInfo.firstName}
-              onChange={(e) => setCustomerInfo(prev => ({ ...prev, firstName: e.target.value }))}
+              onChange={(e) => {
+                setCustomerInfo(prev => ({ ...prev, firstName: e.target.value }));
+                setCustomerNameError('');
+              }}
               margin="normal"
               required
+              error={!!customerNameError}
+              helperText={customerNameError}
+              FormHelperTextProps={{
+                sx: { color: 'error.main', fontWeight: 'bold' }
+              }}
             />
           ) : showNewMemberForm ? (
             <>
@@ -847,38 +848,54 @@ const POS = () => {
                 fullWidth
                 label="Full Name"
                 value={customerInfo.fullName}
-                onChange={(e) => setCustomerInfo(prev => ({ ...prev, fullName: e.target.value }))}
+                onChange={(e) => handleCustomerInfoChange('fullName', e.target.value)}
                 margin="normal"
                 required
-                helperText="Enter both first name and last name"
+                error={!!fullNameError}
+                helperText={fullNameError || 'Enter both first name and last name'}
+                FormHelperTextProps={{
+                  sx: { color: fullNameError ? 'error.main' : 'text.secondary', fontWeight: fullNameError ? 'bold' : 'normal' }
+                }}
               />
               <TextField
                 fullWidth
                 label="Email"
                 type="email"
                 value={customerInfo.email}
-                onChange={(e) => setCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => handleCustomerInfoChange('email', e.target.value)}
                 margin="normal"
-                helperText="Enter email or phone number (at least one is required)"
+                error={!!emailError}
+                helperText={emailError || 'Enter email or phone number (at least one is required)'}
+                FormHelperTextProps={{
+                  sx: { color: emailError ? 'error.main' : 'text.secondary', fontWeight: emailError ? 'bold' : 'normal' }
+                }}
               />
               <TextField
                 fullWidth
                 label="Phone Number"
                 value={customerInfo.phoneNumber}
-                onChange={(e) => setCustomerInfo(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                onChange={(e) => handleCustomerInfoChange('phoneNumber', e.target.value)}
                 margin="normal"
-                helperText="Enter phone number or email (at least one is required)"
+                error={!!phoneError}
+                helperText={phoneError || 'Enter phone number or email (at least one is required)'}
+                FormHelperTextProps={{
+                  sx: { color: phoneError ? 'error.main' : 'text.secondary', fontWeight: phoneError ? 'bold' : 'normal' }
+                }}
               />
               <TextField
                 fullWidth
                 label="Date of Birth"
                 type="text"
                 value={customerInfo.dateOfBirth}
-                onChange={(e) => setCustomerInfo(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                onChange={(e) => handleCustomerInfoChange('dateOfBirth', e.target.value)}
                 margin="normal"
                 required
                 placeholder="mm/dd/yyyy"
-                helperText="Enter date in MM/DD/YYYY format"
+                error={!!birthdateError}
+                helperText={birthdateError || 'Enter date in MM/DD/YYYY format'}
+                FormHelperTextProps={{
+                  sx: { color: birthdateError ? 'error.main' : 'text.secondary', fontWeight: birthdateError ? 'bold' : 'normal' }
+                }}
                 inputProps={{
                   maxLength: 10,
                   pattern: "\\d{2}/\\d{2}/\\d{4}"
@@ -904,7 +921,6 @@ const POS = () => {
               onClick={() => {
                 setShowNewMemberForm(true);
                 setMemberIdError('');
-                // Reset form when switching to registration
                 setCustomerInfo(prev => ({
                   ...prev,
                   fullName: '',
@@ -923,23 +939,26 @@ const POS = () => {
       <DialogActions>
         <Button 
           onClick={() => {
-            if (!isTransactionStarted) {
-              setCustomerInfoDialogOpen(false);
-              setShowNewMemberForm(false);
-              setMemberIdError('');
-              // Reset form
-              setCustomerInfo({
-                id: undefined,
-                firstName: '',
-                memberId: '',
-                fullName: '',
-                dateOfBirth: '',
-                email: '',
-                phoneNumber: '',
-              });
-            }
+            setCustomerInfoDialogOpen(false);
+            setShowNewMemberForm(false);
+            setMemberIdError('');
+            setCustomerNameError('');
+            setFullNameError('');
+            setEmailError('');
+            setBirthdateError('');
+            setPhoneError('');
+            setCustomerInfo({
+              id: undefined,
+              firstName: '',
+              memberId: '',
+              fullName: '',
+              dateOfBirth: '',
+              email: '',
+              phoneNumber: '',
+            });
+            setIsTransactionStarted(false);
           }}
-          disabled={isTransactionStarted}
+          sx={{ color: '#4d351d' }}
         >
           Cancel
         </Button>
@@ -949,6 +968,104 @@ const POS = () => {
           color="primary"
         >
           Continue
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  const renderCustomizationDialog = () => (
+    <Dialog 
+      open={isCustomizeDialogOpen}
+      onClose={() => setIsCustomizeDialogOpen(false)}
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle>
+        <Box>
+          <Typography variant="h6" component="div">
+            {selectedItem?.name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Base Price: ₱{selectedItem?.basePrice.toFixed(2)}
+            {selectedItem?.type !== ITEM_TYPES.DRINKS && ' (NS - No Size)'}
+          </Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Grid container spacing={3}>
+          {selectedItem?.type === ITEM_TYPES.DRINKS && (
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Size</InputLabel>
+                <Select
+                  value={size}
+                  onChange={(e) => setSize(e.target.value)}
+                  label="Size"
+                >
+                  <MenuItem value="SMALL">Small (₱{selectedItem?.sizePrices.SMALL.toFixed(2)})</MenuItem>
+                  <MenuItem value="MEDIUM">Medium (₱{selectedItem?.sizePrices.MEDIUM.toFixed(2)})</MenuItem>
+                  <MenuItem value="LARGE">Large (₱{selectedItem?.sizePrices.LARGE.toFixed(2)})</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
+          
+          <Grid item xs={12}>
+            <Typography variant="subtitle1" gutterBottom>
+              Quantity
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <IconButton 
+                onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                size="small"
+                color="primary"
+              >
+                <RemoveIcon />
+              </IconButton>
+              <Typography variant="h6">{quantity}</Typography>
+              <IconButton 
+                onClick={() => setQuantity(prev => prev + 1)}
+                size="small"
+                color="primary"
+              >
+                <AddIcon />
+              </IconButton>
+            </Box>
+          </Grid>
+
+          {availableCustomizations.map((customization) => (
+            <Grid item xs={12} key={customization.id}>
+              <FormControl fullWidth>
+                <InputLabel>{customization.name}</InputLabel>
+                <Select
+                  value={selectedCustomizations[customization.id] || ''}
+                  onChange={(e) => handleCustomizationChange(customization.id, e.target.value)}
+                  label={customization.name}
+                >
+                  <MenuItem value="">None</MenuItem>
+                  {customization.options?.map((option) => (
+                    <MenuItem key={`${customization.id}-${option.name}`} value={option.name}>
+                      {option.name} (+₱{option.price.toFixed(2)})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          ))}
+
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Total Price: ₱{selectedItem ? (calculateItemPrice(selectedItem, size, customizations) * quantity).toFixed(2) : '0.00'}
+              </Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setIsCustomizeDialogOpen(false)}>Cancel</Button>
+        <Button onClick={handleCustomizationConfirm} variant="contained" color="primary">
+          Add to Order
         </Button>
       </DialogActions>
     </Dialog>
@@ -982,9 +1099,11 @@ const POS = () => {
       <AppBar position="static" sx={{ backgroundColor: '#4d351d', color: 'white' }} elevation={1}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton 
-              onClick={() => navigate(-1)} 
-              sx={{ mr: 2 }}
+            <IconButton
+              size="large"
+              edge="start"
+              color="inherit"
+              onClick={() => navigate('/admin/dashboard')}
               aria-label="back"
             >
               <ArrowBackIcon />
@@ -993,19 +1112,35 @@ const POS = () => {
               component="img"
               src="/assets/logo2.png"
               alt="Hell Week Coffee Logo"
-              sx={{ height: 50 }} 
+              sx={{ height: 50 }}
             />
-            <Typography variant="h6" component="div" fontWeight='bold'>
-              Hell Week Coffee
-            </Typography>
+            <Box>
+              <Typography variant="h6" component="div" fontWeight="bold">
+                Hell Week Coffee
+              </Typography>
+              <Typography variant="subtitle2" component="div">
+                Point-of-Sale System
+              </Typography>
+            </Box>
           </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Typography variant="subtitle1">
+              {customerInfo.firstName}
+            </Typography>
+            <Button 
+              color="inherit" 
+              onClick={() => setChangePasswordOpen(true)}
+              sx={{ mr: 5 }}
+            >
+              Change Password
+            </Button>
             <Button
               color="inherit"
-              onClick={() => navigate('/customers')}
+              onClick={() => navigate('/customer-management')}
               startIcon={<PersonIcon />}
+              sx={{ mr: 2 }}
             >
-              Customer Management
+              Customers
             </Button>
             <Button
               color="inherit"
@@ -1019,460 +1154,466 @@ const POS = () => {
       </AppBar>
 
       <Box sx={{ backgroundColor: '#EEDCC6', minHeight: '100vh', mt: 0, paddingTop: 0.5 }}>
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        {!isTransactionStarted ? (
-          // Initial Transaction Screen
-          <Box sx={{ justifyContent: 'center', display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', mt: 4 }}>
-            <Typography variant='h2'sx={{fontWeight: 'bold', color:'#230c02', mb:3}}>Point-of-Sale System</Typography>
-            <Box sx={{ display: 'flex' , flexDirection:'row', gap: 3 }}>
-            <Button
-            variant="outlined"
-            size="large"
-            onClick={handleCancelTransaction}
-            sx={{
-              width: '300px',
-              height: '200px',
-              backgroundColor: '#FFF5E9',
-              borderColor: '#4d351d',
-              color: '#230c02',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-          <CancelIcon sx={{ fontSize: '70px', color: '#4d351d', mb: 1 }} />
-          Cancel Transaction
-          </Button>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={handleNewTransaction}
-              sx={{
-                width: '300px',
-                height: '200px',
-                backgroundColor: '#4d351d',
-                color: 'white',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <ShoppingCartIcon sx={{ fontSize: '70px', color: 'white', mb: 1 }} />
-              New Transaction
-            </Button>
-        </Box>
-        </Box>
-        ) : (
-          
-          // Main POS Interface
-          
-      <Container maxWidth="xl" sx={{ mt: 0, mb: 4 }}>
-          <Typography
-            variant="h4"
-            fontWeight="bold"
-            sx={{ color: '#230c02', textAlign: 'center', mb: 4 }}
-          >
-            Point-of-Sale System
-          </Typography>
-          <Grid container spacing={3}>
-            {/* Left Panel - Menu Selection */}
-            <Grid item xs={12} md={8}>
-              <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' }}>
-                {/* Customer Type Selection */}
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="h6" gutterBottom fontWeight='bold' sx={{color:'#230c02'}}>
-                    Customer Information
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <FormControl fullWidth size="small">
-                        <Select
-                          value={isGuestOrder ? 'guest' : 'member'}
-                          onChange={(e) => setIsGuestOrder(e.target.value === 'guest')}
-                        >
-                          <MenuItem value="guest">Guest</MenuItem>
-                          <MenuItem value="member">Member</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    {!isGuestOrder && (
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Membership ID"
-                          value={membershipId}
-                          onChange={(e) => setMembershipId(e.target.value)}
-                        />
-                      </Grid>
-                    )}
-                  </Grid>
-                </Box>
-
-                <Divider sx={{ my: 2 }} />
-
-                {/* Item Type Selection */}
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="h6" gutterBottom fontWeight='bold' sx={{color:'#230c02'}}>
-                    Select Item Type
-                  </Typography>
-                  <Grid container spacing={1}>
-                    {Object.values(ITEM_TYPES).map((type) => (
-                      <Grid item key={type}>
-                        <Button
-                          variant={selectedType === type ? 'contained' : 'outlined'}
-                          onClick={() => handleTypeSelect(type)}
-                          sx={{ minWidth: '120px' }}
-                        >
-                          {type.replace(/_/g, ' ')}
-                        </Button>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Box>
-
-                {/* Item Selection */}
-                {selectedType && (
-                  <Box sx={{ mb: 2, flex: 1, overflow: 'auto' }}>
-                    <Typography variant="h6" gutterBottom fontWeight='bold' sx={{color:'#230c02'}}> 
-                      Select Item
-                    </Typography>
-                    <Grid container spacing={2}>
-                      {items
-                        .filter(item => item.type === selectedType && item.active)
-                        .map((item) => (
-                          <Grid item xs={12} sm={6} md={4} key={item.code}>
-                            <Paper
+        <Container maxWidth="xl" sx={{ mt: 6, mb: 6 }}>
+          {!isTransactionStarted ? (
+            // Initial Transaction Screen
+            <Box sx={{ justifyContent: 'center', display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', mt: 4 }}>
+              <Typography variant='h2'sx={{fontWeight: 'bold', color:'#230c02', mb:3}}>Point-of-Sale System</Typography>
+              <Grid container spacing={2} justifyContent="center">
+                <Grid item>
+                  <Button
+                    variant="contained"
+                    onClick={handleNewTransaction}
+                    sx={{
+                      width: '400px',
+                      height: '300px',
+                      backgroundColor: '#4d351d',
+                      '&:hover': {
+                        backgroundColor: '#362513',
+                      },
+                    }}
+                  >
+                    <Box sx={{ textAlign: 'center' }}>
+                      <ShoppingCartIcon sx={{ fontSize: 60, mb: 1 }} />
+                      <Typography variant="h6">New Transaction</Typography>
+                    </Box>
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+          ) : (
+            // Main POS Interface
+            <>
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+                sx={{ color: '#230c02', textAlign: 'center', mb: 4 }}
+              >
+                Point-of-Sale System
+              </Typography>
+              
+              <Grid container spacing={3}>
+                {/* Left Panel - Item Selection */}
+                <Grid item xs={12} md={8} lg={9}>
+                  <Paper sx={{ p: 3, height: '85vh', display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
+                    {/* Search and Filter Section */}
+                    <Box sx={{ mb: 4 }}>
+                      <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#230c02', mb: 2 }}>
+                        Menu Items
+                      </Typography>
+                      <Grid container spacing={3} alignItems="center">
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            placeholder="Search for items..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <SearchIcon sx={{ color: '#4d351d' }} />
+                                </InputAdornment>
+                              ),
+                            }}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                borderRadius: 1.5,
+                                backgroundColor: 'white'
+                              }
+                            }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={selectedType}
+                              onChange={(e) => setSelectedType(e.target.value as ItemType | '')}
+                              displayEmpty
                               sx={{
-                                p: 2,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                  transform: 'translateY(-2px)',
-                                  boxShadow: 3,
-                                },
+                                borderRadius: 1.5,
+                                backgroundColor: 'white'
                               }}
-                              onClick={() => handleItemSelect(item)}
                             >
-                              <Typography variant="subtitle1" gutterBottom fontWeight='bold'>
-                                {item.name}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Base Price: ₱{item.basePrice.toFixed(2)}
-                              </Typography>
-                              {item.description && (
-                                <Typography variant="body2" color="text.secondary" noWrap>
-                                  {item.description}
-                                </Typography>
-                              )}
-                            </Paper>
+                              <MenuItem value="">All Items</MenuItem>
+                              {Object.values(ITEM_TYPES).map((type) => (
+                                <MenuItem key={type} value={type}>
+                                  {type.replace(/_/g, ' ')}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                      </Grid>
+                    </Box>
+
+                    {/* Item Type Selection */}
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#230c02', mb: 2 }}>
+                        Select Item Type
+                      </Typography>
+                      <Grid container spacing={1.5}>
+                        {Object.values(ITEM_TYPES).map((type) => (
+                          <Grid item key={type}>
+                            <Button
+                              variant={selectedType === type ? 'contained' : 'outlined'}
+                              onClick={() => handleTypeSelect(type)}
+                              sx={{
+                                minWidth: '130px',
+                                height: '40px',
+                                borderRadius: 1.5,
+                                backgroundColor: selectedType === type ? '#4d351d' : 'transparent',
+                                borderColor: '#4d351d',
+                                color: selectedType === type ? 'white' : '#4d351d',
+                                '&:hover': {
+                                  backgroundColor: selectedType === type ? '#362513' : 'rgba(77, 53, 29, 0.1)',
+                                  borderColor: '#4d351d'
+                                }
+                              }}
+                            >
+                              {type.replace(/_/g, ' ')}
+                            </Button>
                           </Grid>
                         ))}
-                    </Grid>
-                  </Box>
-                )}
-              </Paper>
-            </Grid>
+                      </Grid>
+                    </Box>
 
-            {/* Right Panel - Order Summary */}
-            <Grid item xs={12} md={4}>
-              <Paper sx={{ p: 2, height: '80vh', display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" gutterBottom fontWeight='bold' sx={{color:'#230c02'}}>
-                  Order Summary
+                    {/* Item Selection */}
+                    {selectedType && (
+                      <Box sx={{ 
+                        flex: 1,
+                        overflow: 'auto',
+                        backgroundColor: 'white',
+                        borderRadius: 2,
+                        p: 2
+                      }}>
+                        <Typography 
+                          variant="h6" 
+                          sx={{
+                            color: '#4d351d',
+                            fontWeight: 'bold',
+                            mb: 2,
+                            pl: 1
+                          }}
+                        > 
+                          Select Item
+                        </Typography>
+                        <Grid container spacing={2}>
+                          {filteredItems.map((item) => (
+                            <Grid item xs={12} sm={6} md={4} lg={3} key={item.code}>
+                              <Card
+                                onClick={() => handleItemSelect(item)}
+                                sx={{
+                                  cursor: 'pointer',
+                                  height: '320px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  transition: 'all 0.2s ease',
+                                  borderRadius: 2,
+                                  border: selectedItem?.code === item.code ? '2px solid #4d351d' : '1px solid #f0f0f0',
+                                  '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                                  },
+                                  backgroundColor: selectedItem?.code === item.code ? '#fff5e6' : 'white'
+                                }}
+                              >
+                                <CardMedia
+                                  component="img"
+                                  image={item.imageUrl || '/assets/placeholder.png'}
+                                  alt={item.name}
+                                  sx={{
+                                    height: '180px',
+                                    objectFit: 'cover',
+                                    borderTopLeftRadius: 8,
+                                    borderTopRightRadius: 8
+                                  }}
+                                  onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = '/assets/placeholder.png';
+                                  }}
+                                />
+                                <CardContent 
+                                  sx={{ 
+                                    p: 2,
+                                    height: '140px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'space-between'
+                                  }}
+                                >
+                                  <Box>
+                                    <Typography 
+                                      variant="subtitle1" 
+                                      sx={{ 
+                                        fontWeight: 'bold',
+                                        color: '#4d351d',
+                                        mb: 0.5,
+                                        fontSize: '1rem',
+                                        lineHeight: 1.2
+                                      }}
+                                    >
+                                      {item.name}
+                                    </Typography>
+                                    <Typography 
+                                      variant="body2" 
+                                      sx={{ 
+                                        color: 'text.secondary',
+                                        mb: 1,
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                        fontSize: '0.875rem',
+                                        lineHeight: 1.3
+                                      }}
+                                    >
+                                      {item.description || 'No description available'}
+                                    </Typography>
+                                  </Box>
+                                  <Typography 
+                                    variant="subtitle1" 
+                                    sx={{ 
+                                      fontWeight: 'bold',
+                                      color: '#4d351d',
+                                      mt: 'auto'
+                                    }}
+                                  >
+                                    ₱{item.basePrice.toFixed(2)}
+                                  </Typography>
+                                </CardContent>
+                              </Card>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+
+                {/* Right Panel - Order Summary */}
+                <Grid item xs={12} md={4} lg={3}>
+                  <Paper sx={{ p: 2, height: '85vh', display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="h6" gutterBottom fontWeight='bold' sx={{color:'#230c02'}}>
+                      Order Summary
+                    </Typography>
+                    
+                    <List sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
+                      {orderItems.map((orderItem, index) => (
+                        <React.Fragment key={index}>
+                          <ListItem
+                            secondaryAction={
+                              <Box>
+                                <IconButton
+                                  edge="end"
+                                  size="small"
+                                  onClick={() => handleUpdateQuantity(index, false)}
+                                  disabled={orderItem.quantity <= 1}
+                                >
+                                  <RemoveIcon />
+                                </IconButton>
+                                <Typography component="span" sx={{ mx: 1 }}>
+                                  {orderItem.quantity}
+                                </Typography>
+                                <IconButton
+                                  edge="end"
+                                  size="small"
+                                  onClick={() => handleUpdateQuantity(index, true)}
+                                >
+                                  <AddIcon />
+                                </IconButton>
+                                <IconButton
+                                  edge="end"
+                                  size="small"
+                                  onClick={() => handleRemoveOrderItem(index)}
+                                  color="error"
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Box>
+                            }
+                          >
+                            <ListItemText
+                              primary={
+                                <Typography variant="subtitle2">
+                                  {orderItem.item.name}
+                                  {` (${orderItem.item.type === ITEM_TYPES.DRINKS ? orderItem.size : 'NS'})`}
+                                </Typography>
+                              }
+                              secondary={
+                                <>
+                                  <Typography variant="body2" color="text.secondary">
+                                    ₱{orderItem.totalPrice.toFixed(2)}
+                                  </Typography>
+                                  {orderItem.customizations.map((customization, idx) => (
+                                    <Typography key={idx} variant="caption" display="block" color="text.secondary">
+                                      + {customization.name}: {customization.option}
+                                    </Typography>
+                                  ))}
+                                </>
+                              }
+                            />
+                          </ListItem>
+                          <Divider />
+                        </React.Fragment>
+                      ))}
+                    </List>
+
+                    <Box>
+                      <Typography variant="h6" align="right" gutterBottom>
+                        Total: ₱{calculateTotal().toFixed(2)}
+                      </Typography>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        color="primary"
+                        startIcon={<ReceiptIcon />}
+                        onClick={handleCompleteTransaction}
+                        disabled={orderItems.length === 0}
+                        size="large"
+                      >
+                        Complete Transaction
+                      </Button>
+                    </Box>
+                  </Paper>
+                </Grid>
+              </Grid>
+            </>
+          )}
+
+          {/* Customization Dialog */}
+          {renderCustomizationDialog()}
+
+          {/* Receipt Dialog */}
+          <Dialog
+            open={isReceiptDialogOpen}
+            onClose={() => setIsReceiptDialogOpen(false)}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle>Receipt</DialogTitle>
+            <DialogContent>
+              <Box sx={{ p: 2 }} className="receipt-content">
+                <Typography variant="h6" align="center" gutterBottom>
+                  HellWeek Coffee
+                </Typography>
+                <Typography align="center" gutterBottom>
+                  {new Date().toLocaleString()}
+                </Typography>
+                <Typography align="center" gutterBottom>
+                  {isGuestOrder 
+                    ? `Guest: ${customerInfo.firstName}`
+                    : `Member ID: ${customerInfo.memberId}`}
                 </Typography>
                 
-                <List sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
-                  {orderItems.map((orderItem, index) => (
-                    <React.Fragment key={index}>
-                      <ListItem
-                        secondaryAction={
-                          <Box>
-                            <IconButton
-                              edge="end"
-                              size="small"
-                              onClick={() => handleUpdateQuantity(index, false)}
-                              disabled={orderItem.quantity <= 1}
-                            >
-                              <RemoveIcon />
-                            </IconButton>
-                            <Typography component="span" sx={{ mx: 1 }}>
-                              {orderItem.quantity}
-                            </Typography>
-                            <IconButton
-                              edge="end"
-                              size="small"
-                              onClick={() => handleUpdateQuantity(index, true)}
-                            >
-                              <AddIcon />
-                            </IconButton>
-                            <IconButton
-                              edge="end"
-                              size="small"
-                              onClick={() => handleRemoveOrderItem(index)}
-                              color="error"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Box>
-                        }
-                      >
-                        <ListItemText
-                          primary={
-                            <Typography variant="subtitle2">
-                              {orderItem.item.name}
-                              {orderItem.size && ` (${orderItem.size})`}
-                            </Typography>
-                          }
-                          secondary={
-                            <>
-                              <Typography variant="body2" color="text.secondary">
-                                ₱{orderItem.totalPrice.toFixed(2)}
-                              </Typography>
-                              {orderItem.customizations.map((customization, idx) => (
-                                <Typography key={idx} variant="caption" display="block" color="text.secondary">
-                                  + {customization.name}: {customization.option}
-                                </Typography>
-                              ))}
-                            </>
-                          }
-                        />
-                      </ListItem>
-                      <Divider />
-                    </React.Fragment>
-                  ))}
-                </List>
-
-                <Box>
-                  <Typography variant="h6" align="right" gutterBottom>
-                    Total: ₱{calculateTotal().toFixed(2)}
-                  </Typography>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    color="primary"
-                    startIcon={<ReceiptIcon />}
-                    onClick={handleCompleteTransaction}
-                    disabled={orderItems.length === 0}
-                    size="large"
-                  >
-                    Complete Transaction
-                  </Button>
-                </Box>
-              </Paper>
-            </Grid>
-          </Grid>
-          </Container>
-        )}
-
-        {/* Customization Dialog */}
-        <Dialog 
-          open={isCustomizeDialogOpen}
-          onClose={() => setIsCustomizeDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            <Box>
-              <Typography variant="h6" component="div">
-                {selectedItem?.name}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Base Price: ₱{selectedItem?.basePrice.toFixed(2)}
-              </Typography>
-            </Box>
-          </DialogTitle>
-          <DialogContent dividers>
-            <Grid container spacing={3}>
-              {selectedItem?.type === ITEM_TYPES.DRINKS && (
-                <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <InputLabel>Size</InputLabel>
-                    <Select
-                      value={size}
-                      onChange={(e) => setSize(e.target.value)}
-                      label="Size"
-                    >
-                      <MenuItem value="SMALL">Small (₱{selectedItem?.sizePrices.SMALL.toFixed(2)})</MenuItem>
-                      <MenuItem value="MEDIUM">Medium (₱{selectedItem?.sizePrices.MEDIUM.toFixed(2)})</MenuItem>
-                      <MenuItem value="LARGE">Large (₱{selectedItem?.sizePrices.LARGE.toFixed(2)})</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              )}
-              
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Quantity
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <IconButton 
-                    onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                    size="small"
-                    color="primary"
-                  >
-                    <RemoveIcon />
-                  </IconButton>
-                  <Typography variant="h6">{quantity}</Typography>
-                  <IconButton 
-                    onClick={() => setQuantity(prev => prev + 1)}
-                    size="small"
-                    color="primary"
-                  >
-                    <AddIcon />
-                  </IconButton>
-                </Box>
-              </Grid>
-
-              {availableCustomizations.map((customization) => (
-                <Grid item xs={12} key={customization.id}>
-                  <FormControl fullWidth>
-                    <InputLabel>{customization.name}</InputLabel>
-                    <Select
-                      value={selectedCustomizations[customization.id] || ''}
-                      onChange={(e) => handleCustomizationChange(customization.id, e.target.value)}
-                      label={customization.name}
-                    >
-                      <MenuItem value="">None</MenuItem>
-                      {customization.options?.map((option) => (
-                        <MenuItem key={`${customization.id}-${option.name}`} value={option.name}>
-                          {option.name} (+₱{option.price.toFixed(2)})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              ))}
-
-              <Grid item xs={12}>
-                <Paper sx={{ p: 2, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Total Price: ₱{selectedItem ? (calculateItemPrice(selectedItem, size, customizations) * quantity).toFixed(2) : '0.00'}
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setIsCustomizeDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCustomizationConfirm} variant="contained" color="primary">
-              Add to Order
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Receipt Dialog */}
-        <Dialog
-          open={isReceiptDialogOpen}
-          onClose={() => setIsReceiptDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Receipt</DialogTitle>
-          <DialogContent>
-            <Box sx={{ p: 2 }} className="receipt-content">
-              <Typography variant="h6" align="center" gutterBottom>
-                HellWeek Coffee
-              </Typography>
-              <Typography align="center" gutterBottom>
-                {new Date().toLocaleString()}
-              </Typography>
-              <Typography align="center" gutterBottom>
-                {isGuestOrder 
-                  ? `Guest: ${customerInfo.firstName}`
-                  : `Member ID: ${customerInfo.memberId}`}
-              </Typography>
-              
-              <Divider sx={{ my: 2 }} />
-              
-              {orderItems.map((orderItem, index) => (
-                <Box key={index} sx={{ mb: 2 }}>
-                  <Typography>
-                    {orderItem.quantity}x {orderItem.item.name} 
-                    {orderItem.size && ` (${orderItem.size})`}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-                    Base Price: ₱{orderItem.item.basePrice.toFixed(2)}
-                  </Typography>
-                  
-                  {orderItem.customizations.map((customization, idx) => (
-                    <Typography key={idx} variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-                      + {customization.name}: {customization.option} 
-                      (₱{customization.price.toFixed(2)})
+                <Divider sx={{ my: 2 }} />
+                
+                {orderItems.map((orderItem, index) => (
+                  <Box key={index} sx={{ mb: 2 }}>
+                    <Typography>
+                      {orderItem.quantity}x {orderItem.item.name} 
+                      {orderItem.size && ` (${orderItem.size})`}
                     </Typography>
-                  ))}
-                  
-                  <Typography align="right">
-                    Item Total: ₱{orderItem.totalPrice.toFixed(2)}
-                  </Typography>
-                  <Divider sx={{ my: 1 }} />
-                </Box>
-              ))}
-              
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="h6" align="right">
-                  Subtotal: ₱{calculateTotal().toFixed(2)}
-                </Typography>
-
-                {/* Add Promo Code Section */}
-                <Box sx={{ mt: 2, mb: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Have a promo code?
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                    <TextField
-                      size="small"
-                      placeholder="Enter promo code"
-                      value={promoCode}
-                      onChange={(e) => {
-                        setPromoCode(e.target.value.toUpperCase());
-                        setPromoCodeError(''); // Clear error when user types
-                      }}
-                      disabled={isValidatingPromo}
-                      sx={{ flex: 1 }}
-                      error={!!promoCodeError}
-                      helperText={promoCodeError}
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={handleApplyPromoCode}
-                      disabled={isValidatingPromo || !promoCode.trim()}
-                      sx={{ minWidth: '100px' }}
-                    >
-                      {isValidatingPromo ? 'Validating...' : 'Apply'}
-                    </Button>
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                      Base Price: ₱{orderItem.item.basePrice.toFixed(2)}
+                    </Typography>
+                    
+                    {orderItem.customizations.map((customization, idx) => (
+                      <Typography key={idx} variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                        + {customization.name}: {customization.option} 
+                        (₱{customization.price.toFixed(2)})
+                      </Typography>
+                    ))}
+                    
+                    <Typography align="right">
+                      Item Total: ₱{orderItem.totalPrice.toFixed(2)}
+                    </Typography>
+                    <Divider sx={{ my: 1 }} />
                   </Box>
-                </Box>
-
-                {discount > 0 && (
-                  <Typography variant="h6" align="right" color="success.main">
-                    Discount: -₱{discount.toFixed(2)}
+                ))}
+                
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="h6" align="right">
+                    Subtotal: ₱{calculateTotal().toFixed(2)}
                   </Typography>
-                )}
 
-                <Typography variant="h5" align="right" sx={{ mt: 1, fontWeight: 'bold' }}>
-                  Total Amount: ₱{calculateFinalTotal().toFixed(2)}
-                </Typography>
+                  {/* Add Promo Code Section */}
+                  <Box sx={{ mt: 2, mb: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Have a promo code?
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <TextField
+                        size="small"
+                        placeholder="Enter promo code"
+                        value={promoCode}
+                        onChange={(e) => {
+                          setPromoCode(e.target.value.toUpperCase());
+                          setPromoCodeError(''); // Clear error when user types
+                        }}
+                        disabled={isValidatingPromo}
+                        sx={{ flex: 1 }}
+                        error={!!promoCodeError}
+                        helperText={promoCodeError}
+                      />
+                      <Button
+                        variant="contained"
+                        onClick={handleApplyPromoCode}
+                        disabled={isValidatingPromo || !promoCode.trim()}
+                        sx={{ minWidth: '100px' }}
+                      >
+                        {isValidatingPromo ? 'Validating...' : 'Apply'}
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  {discount > 0 && (
+                    <Typography variant="h6" align="right" color="success.main">
+                      Discount: -₱{discount.toFixed(2)}
+                    </Typography>
+                  )}
+
+                  <Typography variant="h5" align="right" sx={{ mt: 1, fontWeight: 'bold' }}>
+                    Total Amount: ₱{calculateFinalTotal().toFixed(2)}
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => {
-              setIsReceiptDialogOpen(false);
-              setPromoCode('');
-              setDiscount(0);
-            }}>Close</Button>
-            <Button onClick={handlePrintReceipt} variant="contained" color="primary" startIcon={<ReceiptIcon />}>
-              Print Receipt
-            </Button>
-          </DialogActions>
-        </Dialog>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => {
+                setIsReceiptDialogOpen(false);
+                setPromoCode('');
+                setDiscount(0);
+              }}>Close</Button>
+              <Button onClick={handlePrintReceipt} variant="contained" color="primary" startIcon={<ReceiptIcon />}>
+                Print Receipt
+              </Button>
+            </DialogActions>
+          </Dialog>
 
-        {/* Customer Information Dialog */}
-        {renderCustomerInfoDialog()}
-      </Container>
+          {/* Customer Information Dialog */}
+          {renderCustomerInfoDialog()}
+
+          {/* Cancel Transaction Dialog */}
+          <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)}>
+            <DialogTitle>Cancel Transaction</DialogTitle>
+            <DialogContent>
+              <Typography>Are you sure you want to cancel this transaction?</Typography>
+              <Typography color="error" sx={{ mt: 2, fontSize: '0.9rem' }}>
+                You'll be logged out from the pos page
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setCancelDialogOpen(false)}>No</Button>
+              <Button onClick={handleCancelTransaction} color="error">Yes</Button>
+            </DialogActions>
+          </Dialog>
+        </Container>
       </Box>
+      <ChangePasswordDialog 
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
     </>
   );
 };

@@ -1,3 +1,0 @@
-name,type,basePrice,categoryId,description,active,smallPrice,mediumPrice,largePrice
-Cold Brew,DRINKS,150,ESPRESSO_DRINKS,Brewed in cold water for 12 hours,TRUE,100,120,140
-Chocolate Cake Lava,FOOD,120,CAKES,Cake that ozze with chocolate,TRUE,,,

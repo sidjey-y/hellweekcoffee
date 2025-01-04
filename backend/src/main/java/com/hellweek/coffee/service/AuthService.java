@@ -43,12 +43,12 @@ public class AuthService {
             logger.info("No admin user found. Creating default admin.");
             User admin = new User();
             admin.setUsername("admin");
-            admin.setPassword(passwordEncoder.encode("HWC@dmin2024!")); // Updated secure password
+            admin.setPassword(passwordEncoder.encode("HWC@dmin2024!")); 
             admin.setFirstName("Admin");
             admin.setLastName("User");
             admin.setRole(User.Role.ADMIN);
             admin.setActive(true);
-            admin.setBirthDate(java.time.LocalDate.of(2000, 1, 1)); // Default birthdate for admin
+            admin.setBirthDate(java.time.LocalDate.of(2000, 1, 1)); 
             userRepository.save(admin);
             logger.info("Default admin user created successfully");
         } else {
@@ -62,7 +62,6 @@ public class AuthService {
             throw new IllegalArgumentException("Username already exists");
         }
 
-        // Check for active users with the same email
         if (request.getEmail() != null && userRepository.findByEmail(request.getEmail())
                 .filter(User::isActive)
                 .isPresent()) {
@@ -94,6 +93,11 @@ public class AuthService {
                 return new EntityNotFoundException("User not found");
             });
 
+        if (!user.isActive()) {
+            logger.error("Deactivated user attempted to login: {}", request.getUsername());
+            throw new BadCredentialsException("Account has been deactivated");
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             logger.error("Invalid password for username: {}", request.getUsername());
             throw new BadCredentialsException("Invalid credentials");
@@ -111,7 +115,6 @@ public class AuthService {
     public User updateUser(Long id, UserRequest request) {
         User user = getUserById(id);
         
-        // Don't allow changing username of existing users
         if (!user.getUsername().equals(request.getUsername())) {
             throw new IllegalArgumentException("Username cannot be changed");
         }

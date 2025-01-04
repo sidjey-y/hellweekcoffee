@@ -25,6 +25,9 @@ import {
   AppBar,
   Toolbar,
   SelectChangeEvent,
+  List,
+  ListItem,
+  ListItemText,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -36,9 +39,10 @@ import {
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
 import { useSnackbar } from 'notistack';
+import { RootState } from '../store';
 import { 
   Item, 
   ItemType, 
@@ -214,7 +218,7 @@ interface CustomizationFormData {
   options: CustomizationOption[];
 }
 
-const Items = () => {
+const Items: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -238,6 +242,17 @@ const Items = () => {
   const [customizationDialogOpen, setCustomizationDialogOpen] = useState(false);
   const [selectedItemForCustomization, setSelectedItemForCustomization] = useState<Item | null>(null);
   const [customizationFormData, setCustomizationFormData] = useState<CustomizationFormData[]>([]);
+  const [nameError, setNameError] = useState<string>('');
+  const [itemNameError, setItemNameError] = useState('');
+  const { user } = useSelector((state: RootState) => state.auth);
+  const [csvErrors, setCsvErrors] = useState<string[]>([]);
+  const [showCsvErrorDialog, setShowCsvErrorDialog] = useState(false);
+  const [priceError, setPriceError] = useState('');
+  const [editConfirmDialogOpen, setEditConfirmDialogOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
+  const [confirmEditItemCode, setConfirmEditItemCode] = useState('');
+  const [deleteCodeError, setDeleteCodeError] = useState('');
+  const [editCodeError, setEditCodeError] = useState('');
 
   useEffect(() => {
     fetchItems();
@@ -310,23 +325,54 @@ const Items = () => {
     setOpenDialog(true);
   };
 
-  const handleEditItem = (item: Item) => {
+  const handleEditClick = (item: Item) => {
+    setItemToEdit(item);
+    setConfirmEditItemCode('');
+    setEditCodeError('');
+    setEditConfirmDialogOpen(true);
+  };
+
+  const handleEditConfirm = () => {
+    if (!itemToEdit) return;
+
+    if (confirmEditItemCode !== itemToEdit.code) {
+      setEditCodeError('Item code does not match');
+      return;
+    }
+
+    setEditConfirmDialogOpen(false);
     setDialogMode('edit');
-    setSelectedItem(item);
+    setSelectedItem(itemToEdit);
+    setFormData({
+      name: itemToEdit.name,
+      type: itemToEdit.type,
+      basePrice: itemToEdit.basePrice,
+      categoryId: itemToEdit.category.id,
+      description: itemToEdit.description || '',
+      sizePrices: itemToEdit.sizePrices,
+      active: itemToEdit.active,
+      availableCustomizations: itemToEdit.availableCustomizations?.map(c => 
+        typeof c.id === 'string' ? parseInt(c.id, 10) : c.id
+      ) || []
+    });
     setOpenDialog(true);
+    setItemToEdit(null);
+    setConfirmEditItemCode('');
+    setEditCodeError('');
   };
 
   const handleDeleteClick = (item: Item) => {
     setItemToDelete(item);
     setDeleteDialogOpen(true);
     setConfirmItemCode('');
+    setDeleteCodeError('');
   };
 
   const handleDeleteConfirm = async () => {
     if (!itemToDelete) return;
 
     if (confirmItemCode !== itemToDelete.code) {
-      enqueueSnackbar('Item code does not match', { variant: 'error' });
+      setDeleteCodeError('Item code does not match');
       return;
     }
 
@@ -337,6 +383,7 @@ const Items = () => {
       setDeleteDialogOpen(false);
       setItemToDelete(null);
       setConfirmItemCode('');
+      setDeleteCodeError('');
     } catch (error) {
       console.error('Error deleting item:', error);
       enqueueSnackbar('Failed to delete item', { variant: 'error' });
@@ -346,6 +393,7 @@ const Items = () => {
   const handleDialogClose = () => {
     setOpenDialog(false);
     setSelectedItem(null);
+    setNameError('');
   };
 
   const handleTextFieldChange = (
@@ -386,12 +434,25 @@ const Items = () => {
   };
 
   const handleSaveItem = async () => {
+    setNameError('');
+
     if (!formData.name || !formData.type || !formData.categoryId || formData.basePrice <= 0) {
       enqueueSnackbar('Please fill in all required fields', { variant: 'error' });
       return;
     }
 
     try {
+      // Check for existing items with the same name (case-insensitive)
+      const existingItem = items.find(
+        item => item.name.toLowerCase() === formData.name.toLowerCase() && 
+        (!selectedItem || item.code !== selectedItem.code)
+      );
+
+      if (existingItem) {
+        setNameError('An item with this name already exists');
+        return;
+      }
+
       const itemData: ItemRequest = {
         name: formData.name,
         type: formData.type,
@@ -434,26 +495,37 @@ const Items = () => {
     if (!file) return;
 
     setIsImporting(true);
+    setCsvErrors([]);
     Papa.parse<CSVRow>(file, {
       header: true,
       complete: async (results: ParseResult) => {
         try {
           let successCount = 0;
           let errorCount = 0;
+          const errors: string[] = [];
 
           for (const row of results.data) {
             try {
+              // Check for duplicate item names
+              const isDuplicate = items.some(item => 
+                item.name.toLowerCase() === row.name.toLowerCase()
+              );
+
+              if (isDuplicate) {
+                errors.push(`Item "${row.name}" already exists in the table`);
+                errorCount++;
+                continue;
+              }
+
               const type = row.type.toUpperCase() as ItemType;
               const basePrice = parseFloat(row.basePrice);
               
-              // Create size prices object
               const sizePrices: Record<Size, number> = type === ITEM_TYPES.DRINKS ? {
                 SMALL: parseFloat(row.smallPrice || row.basePrice),
                 MEDIUM: parseFloat(row.mediumPrice || row.basePrice),
                 LARGE: parseFloat(row.largePrice || row.basePrice)
               } : defaultSizePrices;
 
-              // Convert CSV data to item format
               const itemData: ItemRequest = {
                 name: row.name,
                 type,
@@ -462,17 +534,23 @@ const Items = () => {
                 description: row.description || '',
                 active: row.active.toLowerCase() === 'true',
                 sizePrices,
-                availableCustomizations: [] as number[] // Initialize as empty array for imported items
+                availableCustomizations: []
               };
 
-              // Create the item
               const code = generateItemCode(row.categoryId as CategoryType, row.name, items);
               await itemsAPI.createItem({ ...itemData, code });
               successCount++;
             } catch (error) {
               console.error('Error importing row:', row, error);
+              errors.push(`Failed to import "${row.name}": ${error}`);
               errorCount++;
             }
+          }
+
+          // Set errors and show dialog if there are any
+          if (errors.length > 0) {
+            setCsvErrors(errors);
+            setShowCsvErrorDialog(true);
           }
 
           // Refresh the items list
@@ -646,16 +724,58 @@ const Items = () => {
     field: string,
     value: string | number
   ) => {
-    setCustomizationFormData(prev => {
-      const updated = [...prev];
-      updated[customizationIndex] = {
-        ...updated[customizationIndex],
-        options: updated[customizationIndex].options.map((opt, i) => 
-          i === optionIndex ? { ...opt, [field]: value } : opt
-        )
-      };
-      return updated;
-    });
+    if (field === 'price') {
+      const priceValue = value.toString();
+      
+      // Allow empty input
+      if (priceValue === '') {
+        setCustomizationFormData(prev => {
+          const updated = [...prev];
+          updated[customizationIndex] = {
+            ...updated[customizationIndex],
+            options: updated[customizationIndex].options.map((opt, i) => 
+              i === optionIndex ? { ...opt, price: 0 } : opt
+            )
+          };
+          return updated;
+        });
+        return;
+      }
+
+      // Check for negative numbers
+      if (priceValue.startsWith('-')) {
+        enqueueSnackbar('Price cannot be negative', { variant: 'error' });
+        return;
+      }
+
+      // Remove leading zeros and validate decimal format
+      if (/^\d*\.?\d{0,2}$/.test(priceValue)) {
+        const numValue = priceValue.replace(/^0+(?=\d)/, '');
+        const price = Number(numValue);
+        
+        setCustomizationFormData(prev => {
+          const updated = [...prev];
+          updated[customizationIndex] = {
+            ...updated[customizationIndex],
+            options: updated[customizationIndex].options.map((opt, i) => 
+              i === optionIndex ? { ...opt, price } : opt
+            )
+          };
+          return updated;
+        });
+      }
+    } else {
+      setCustomizationFormData(prev => {
+        const updated = [...prev];
+        updated[customizationIndex] = {
+          ...updated[customizationIndex],
+          options: updated[customizationIndex].options.map((opt, i) => 
+            i === optionIndex ? { ...opt, [field]: value } : opt
+          )
+        };
+        return updated;
+      });
+    }
   };
 
   const handleAddNewCustomization = () => {
@@ -708,12 +828,9 @@ const Items = () => {
 
         try {
           let savedCustomization;
-          // Check if it's a new customization (id is a timestamp) or an existing one
           if (customization.id.toString().length > 10) {
-            // New customization
             savedCustomization = await customizationAPI.createCustomization(customizationData);
           } else {
-            // Existing customization
             savedCustomization = await customizationAPI.updateCustomization(customization.id, customizationData);
           }
           savedCustomizationIds.push(savedCustomization.id);
@@ -776,18 +893,128 @@ const Items = () => {
   };
 
   // Add the handleDeleteCustomization function
-  const handleDeleteCustomization = (index: number) => {
-    setCustomizationFormData(prev => prev.filter((_, i) => i !== index));
+  const handleDeleteCustomization = async (index: number) => {
+    try {
+      if (!selectedItemForCustomization) {
+        throw new Error('No item selected for customization');
+      }
+
+      // Get the customization being deleted
+      const customizationToDelete = customizationFormData[index];
+
+      // Remove from form data
+      setCustomizationFormData(prev => prev.filter((_, i) => i !== index));
+
+      // Update the item's available customizations
+      const availableCustomizations = selectedItemForCustomization.availableCustomizations || [];
+      const updatedCustomizations = availableCustomizations.filter(
+        c => Number(c.id) !== customizationToDelete.id
+      );
+
+      // Update the item with the new customizations list
+      const updatedItemData: ItemRequest = {
+        name: selectedItemForCustomization.name,
+        type: selectedItemForCustomization.type,
+        basePrice: selectedItemForCustomization.basePrice,
+        categoryId: selectedItemForCustomization.category.id,
+        description: selectedItemForCustomization.description || '',
+        sizePrices: selectedItemForCustomization.sizePrices,
+        active: selectedItemForCustomization.active,
+        availableCustomizations: updatedCustomizations.map(c => typeof c.id === 'string' ? parseInt(c.id, 10) : c.id)
+      };
+
+      // Delete the customization from the API
+      try {
+        await customizationAPI.updateCustomization(customizationToDelete.id, {
+          active: false
+        });
+      } catch (error) {
+        console.error('Error deactivating customization:', error);
+      }
+
+      await itemsAPI.updateItem(selectedItemForCustomization.code, updatedItemData);
+      
+      // Refresh items list to reflect changes
+      await fetchItems();
+      
+      enqueueSnackbar('Customization deleted successfully', { variant: 'success' });
+    } catch (error) {
+      console.error('Error deleting customization:', error);
+      enqueueSnackbar('Failed to delete customization', { variant: 'error' });
+    }
+  };
+
+  const handleBackClick = () => {
+    if (user?.role === 'MANAGER') {
+      navigate('/manager/dashboard');
+    } else if (user?.role === 'ADMIN') {
+      navigate('/admin/dashboard');
+    }
+  };
+
+  const validateItemName = (name: string) => {
+    const isDuplicate = items.some(item => 
+      item.name.toLowerCase() === name.toLowerCase()
+    );
+    if (isDuplicate) {
+      setItemNameError('This item name already exists');
+      return false;
+    }
+    setItemNameError('');
+    return true;
+  };
+
+  const handleBasePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Allow empty input for initial typing
+    if (value === '') {
+      setFormData(prev => ({
+        ...prev,
+        basePrice: 0
+      }));
+      setPriceError('');
+      return;
+    }
+
+    // Check for negative numbers
+    if (value.startsWith('-')) {
+      setPriceError('Price cannot be negative');
+      return;
+    }
+
+    // Remove leading zeros and validate decimal format
+    if (/^\d*\.?\d{0,2}$/.test(value)) {
+      const numValue = value.replace(/^0+(?=\d)/, ''); // Remove leading zeros but keep single 0
+      const basePrice = Number(numValue);
+      
+      setFormData(prev => ({
+        ...prev,
+        basePrice,
+        sizePrices: isDrinkType(prev.type)
+          ? calculateSizePrices(basePrice)
+          : defaultSizePrices
+      }));
+      setPriceError('');
+    }
   };
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1} sx={{ backgroundColor: '#4d351d' }}>
+      <AppBar position="static" sx={{ backgroundColor: '#4d351d', color: 'white' }} elevation={1}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <img src="/assets/logo2.png" alt="Hell Week Coffee Logo" style={{ height: '50px', width: '50px' }} />
-            <Typography variant="h6" component="div" fontWeight="bold" color="white">
-              Hell Week Coffee
+            <IconButton
+              size="large"
+              edge="start"
+              color="inherit"
+              onClick={handleBackClick}
+              aria-label="back"
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h6" component="div" fontWeight="bold">
+              Item Management
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -796,7 +1023,7 @@ const Items = () => {
             backgroundColor: 'white',
             borderRadius: 1,
             '&:hover': {
-              backgroundColor: 'white',  // Retain white color on hover
+              backgroundColor: 'white',
             },
           }}
         >
@@ -848,9 +1075,6 @@ const Items = () => {
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
           <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton onClick={() => navigate('/admin/dashboard')} sx={{ mr: 2 }}>
-            <ArrowBackIcon />
-          </IconButton>
           <Typography variant="h4" component="h1" fontWeight="bold" color="#230c02">
               Item Management
           </Typography>
@@ -902,17 +1126,7 @@ const Items = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {items
-                  .filter(item => 
-                    (typeFilter ? item.type === typeFilter : true) &&
-                    (categoryFilter ? item.category.id === categoryFilter : true) &&
-                    (searchQuery 
-                      ? item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        item.code.toLowerCase().includes(searchQuery.toLowerCase())
-                      : true
-                    )
-                  )
-                  .map((item) => (
+                {filteredItems.map((item) => (
                     <TableRow key={item.code}>
                       <TableCell>{item.code}</TableCell>
                       <TableCell>{item.name}</TableCell>
@@ -934,7 +1148,7 @@ const Items = () => {
                       <TableCell>
                         <IconButton
                           size="small"
-                          onClick={() => handleEditItem(item)}
+                          onClick={() => handleEditClick(item)}
                           color="primary"
                         >
                           <EditIcon />
@@ -976,9 +1190,17 @@ const Items = () => {
             <TextField
               fullWidth
               value={confirmItemCode}
-              onChange={(e) => setConfirmItemCode(e.target.value)}
+              onChange={(e) => {
+                setConfirmItemCode(e.target.value);
+                setDeleteCodeError('');
+              }}
               placeholder="Enter item code"
               size="small"
+              error={!!deleteCodeError}
+              helperText={deleteCodeError}
+              FormHelperTextProps={{
+                sx: { color: 'error.main', fontWeight: 'bold' }
+              }}
               sx={{ mt: 1 }}
             />
           </DialogContent>
@@ -1009,9 +1231,17 @@ const Items = () => {
               <TextField
                 fullWidth
                 required
-                label="Name"
+                label="Item Name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value });
+                  validateItemName(e.target.value);
+                }}
+                error={!!itemNameError}
+                helperText={itemNameError}
+                FormHelperTextProps={{
+                  sx: { color: 'error.main', fontWeight: 'bold' }
+                }}
                 sx={{ mb: 2 }}
               />
               
@@ -1059,21 +1289,21 @@ const Items = () => {
                 fullWidth
                 required
                 label="Base Price"
-                type="number"
-                value={formData.basePrice}
-                onChange={(e) => {
-                  const basePrice = Number(e.target.value);
-                  setFormData({
-                    ...formData,
-                    basePrice,
-                    sizePrices: isDrinkType(formData.type)
-                      ? calculateSizePrices(basePrice)
-                      : defaultSizePrices
-                  });
+                type="text"
+                value={formData.basePrice === 0 ? '' : formData.basePrice.toString()}
+                onChange={handleBasePriceChange}
+                error={!!priceError}
+                helperText={priceError}
+                FormHelperTextProps={{
+                  sx: { color: 'error.main', fontWeight: 'bold' }
                 }}
                 InputProps={{
                   startAdornment: <span>₱</span>,
-                  inputProps: { min: 0, step: 0.01 }
+                  inputProps: { 
+                    inputMode: 'decimal',
+                    pattern: '[0-9]*',
+                    min: 0
+                  }
                 }}
                 sx={{ mb: 2 }}
               />
@@ -1123,8 +1353,12 @@ const Items = () => {
           onClose={() => setCustomizationDialogOpen(false)}
           maxWidth="md"
           fullWidth
-          disableEscapeKeyDown
-          onBackdropClick={() => {}}
+          PaperProps={{
+            sx: {
+              minHeight: '50vh',
+              maxHeight: '80vh'
+            }
+          }}
         >
           <DialogTitle>
             Manage Customizations - {selectedItemForCustomization?.name}
@@ -1149,6 +1383,9 @@ const Items = () => {
                       value={customization.name}
                       onChange={(e) => handleCustomizationChange(index, 'name', e.target.value)}
                       sx={{ mr: 2 }}
+                      inputProps={{
+                        autoComplete: 'off'
+                      }}
                     />
                     <IconButton 
                       color="error" 
@@ -1165,13 +1402,24 @@ const Items = () => {
                         value={option.name}
                         onChange={(e) => handleOptionChange(index, optionIndex, 'name', e.target.value)}
                         sx={{ flex: 2 }}
+                        inputProps={{
+                          autoComplete: 'off'
+                        }}
                       />
                       <TextField
                         label="Price"
-                        type="number"
-                        value={option.price}
-                        onChange={(e) => handleOptionChange(index, optionIndex, 'price', Number(e.target.value))}
+                        type="text"
+                        value={option.price === 0 ? '' : option.price.toString()}
+                        onChange={(e) => handleOptionChange(index, optionIndex, 'price', e.target.value)}
                         sx={{ flex: 1 }}
+                        InputProps={{
+                          startAdornment: <span>₱</span>,
+                          inputProps: { 
+                            inputMode: 'decimal',
+                            pattern: '[0-9]*',
+                            min: 0
+                          }
+                        }}
                       />
                       <IconButton 
                         color="error" 
@@ -1205,6 +1453,86 @@ const Items = () => {
             <Button onClick={() => setCustomizationDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveCustomizations} variant="contained" color="primary">
               Save Customizations
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* CSV Error Dialog */}
+        <Dialog
+          open={showCsvErrorDialog}
+          onClose={() => setShowCsvErrorDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ color: 'error.main' }}>Import Errors</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1" gutterBottom>
+              The following errors occurred during import:
+            </Typography>
+            <List>
+              {csvErrors.map((error, index) => (
+                <ListItem key={index}>
+                  <ListItemText 
+                    primary={error} 
+                    sx={{ 
+                      '& .MuiListItemText-primary': { 
+                        color: 'error.main',
+                        fontWeight: 'bold'
+                      } 
+                    }} 
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowCsvErrorDialog(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Edit Confirmation Dialog */}
+        <Dialog
+          open={editConfirmDialogOpen}
+          onClose={() => setEditConfirmDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Edit Item</DialogTitle>
+          <DialogContent>
+            <Typography gutterBottom>
+              Please confirm you want to edit this item:
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Item: {itemToEdit?.name} (Code: {itemToEdit?.code})
+            </Typography>
+            <Typography variant="body2" color="error" sx={{ mt: 2, mb: 1 }}>
+              Please enter the item code to confirm:
+            </Typography>
+            <TextField
+              fullWidth
+              value={confirmEditItemCode}
+              onChange={(e) => {
+                setConfirmEditItemCode(e.target.value);
+                setEditCodeError('');
+              }}
+              placeholder="Enter item code"
+              size="small"
+              error={!!editCodeError}
+              helperText={editCodeError}
+              FormHelperTextProps={{
+                sx: { color: 'error.main', fontWeight: 'bold' }
+              }}
+              sx={{ mt: 1 }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditConfirmDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleEditConfirm}
+              color="primary"
+              disabled={!confirmEditItemCode}
+            >
+              Proceed
             </Button>
           </DialogActions>
         </Dialog>

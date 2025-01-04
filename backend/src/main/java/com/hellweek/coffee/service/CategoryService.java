@@ -26,20 +26,40 @@ public class CategoryService {
             return;
         }
 
-        // Initialize Drink categories
         createCategory("ESPRESSO_DRINKS", "Espresso Drinks", CategoryType.ESPRESSO_DRINKS);
         createCategory("BLENDED_DRINKS", "Blended Drinks", CategoryType.BLENDED_DRINKS);
         createCategory("TEA", "Tea", CategoryType.TEA);
         createCategory("OTHER_DRINKS", "Other Drinks", CategoryType.OTHER_DRINKS);
 
-        // Initialize Food categories
         createCategory("PASTRIES", "Pastries", CategoryType.PASTRIES);
         createCategory("CAKES", "Cakes", CategoryType.CAKES);
         createCategory("SANDWICHES", "Sandwiches", CategoryType.SANDWICHES);
         createCategory("PASTAS", "Pastas", CategoryType.PASTAS);
         createCategory("OTHER_FOOD", "Other Food", CategoryType.OTHER_FOOD);
 
-        // Initialize Merchandise categories
+        createCategory("TSHIRTS", "T-Shirts", CategoryType.TSHIRTS);
+        createCategory("BAGS", "Bags", CategoryType.BAGS);
+        createCategory("MUGS", "Mugs", CategoryType.MUGS);
+        createCategory("OTHER_MERCHANDISE", "Other Merchandise", CategoryType.OTHER_MERCHANDISE);
+    }
+
+    @Transactional
+    public void reinitializeCategories() {
+        // Clear all existing categories
+        categoryRepository.deleteAll();
+        
+        // Initialize categories
+        createCategory("ESPRESSO_DRINKS", "Espresso Drinks", CategoryType.ESPRESSO_DRINKS);
+        createCategory("BLENDED_DRINKS", "Blended Drinks", CategoryType.BLENDED_DRINKS);
+        createCategory("TEA", "Tea", CategoryType.TEA);
+        createCategory("OTHER_DRINKS", "Other Drinks", CategoryType.OTHER_DRINKS);
+
+        createCategory("PASTRIES", "Pastries", CategoryType.PASTRIES);
+        createCategory("CAKES", "Cakes", CategoryType.CAKES);
+        createCategory("SANDWICHES", "Sandwiches", CategoryType.SANDWICHES);
+        createCategory("PASTAS", "Pastas", CategoryType.PASTAS);
+        createCategory("OTHER_FOOD", "Other Food", CategoryType.OTHER_FOOD);
+
         createCategory("TSHIRTS", "T-Shirts", CategoryType.TSHIRTS);
         createCategory("BAGS", "Bags", CategoryType.BAGS);
         createCategory("MUGS", "Mugs", CategoryType.MUGS);

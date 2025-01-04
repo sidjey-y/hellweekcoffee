@@ -30,9 +30,9 @@ export const CATEGORY_TYPES: Record<ItemType, CategoryType[]> = {
 export type Size = 'SMALL' | 'MEDIUM' | 'LARGE';
 
 export const SIZES: Record<Size, { multiplier: number, additive: number }> = {
-  SMALL: { multiplier: 0.8, additive: 0 },
-  MEDIUM: { multiplier: 1.0, additive: 0 },
-  LARGE: { multiplier: 1.2, additive: 20 }
+  SMALL: { multiplier: 1.0, additive: 0 },
+  MEDIUM: { multiplier: 1.25, additive: 0 },
+  LARGE: { multiplier: 1.71, additive: 0 }
 };
 
 export interface Item {
@@ -53,6 +53,7 @@ export interface Item {
     name: string;
     optionsWithPrices: Record<string, number>;
   }[];
+  imageUrl?: string;
 }
 
 export interface ItemFormData {
@@ -91,9 +92,15 @@ export const isMerchandiseType = (type: ItemType): boolean => {
 };
 
 export const calculateSizePrices = (basePrice: number): Record<Size, number> => {
-  return {
+  const prices = {
     SMALL: Math.round(basePrice * SIZES.SMALL.multiplier + SIZES.SMALL.additive),
     MEDIUM: Math.round(basePrice * SIZES.MEDIUM.multiplier + SIZES.MEDIUM.additive),
     LARGE: Math.round(basePrice * SIZES.LARGE.multiplier + SIZES.LARGE.additive)
+  };
+  
+  return {
+    SMALL: prices.SMALL,
+    MEDIUM: prices.MEDIUM,
+    LARGE: prices.LARGE
   };
 };

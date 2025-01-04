@@ -5,22 +5,27 @@ import com.hellweek.coffee.dto.ItemRequest;
 import com.hellweek.coffee.model.Item;
 import com.hellweek.coffee.model.ItemType;
 import com.hellweek.coffee.service.ItemService;
+import com.hellweek.coffee.service.CategoryService;
+import com.hellweek.coffee.service.CustomizationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping({"/api/items", "/items"})
+@RequestMapping("/api/items")
 @RequiredArgsConstructor
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"}, allowCredentials = "true")
 public class ItemController {
     private static final Logger logger = LoggerFactory.getLogger(ItemController.class);
     private final ItemService itemService;
+    private final CategoryService categoryService;
+    private final CustomizationService customizationService;
 
     @PostMapping
     public ResponseEntity<?> createItem(@Valid @RequestBody ItemRequest request) {
@@ -106,6 +111,45 @@ public class ItemController {
             logger.error("Error fetching items by type {}: {}", type, e.getMessage(), e);
             return ResponseEntity.internalServerError()
                 .body(new ErrorResponse("Error fetching items by type: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/reinitialize")
+    public ResponseEntity<String> reinitializeItems() {
+        try {
+            logger.info("Reinitializing items...");
+            itemService.reinitializeItems();
+            logger.info("Items reinitialized successfully");
+            return ResponseEntity.ok("Items reinitialized successfully");
+        } catch (Exception e) {
+            logger.error("Error reinitializing items: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                .body("Error reinitializing items: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/reinitialize-all")
+    public ResponseEntity<String> reinitializeAllData() {
+        try {
+            logger.info("Starting data reinitialization...");
+            
+            // Clear and reinitialize categories first
+            categoryService.reinitializeCategories();
+            logger.info("Categories reinitialized");
+            
+            // Then customizations
+            customizationService.reinitializeCustomizations();
+            logger.info("Customizations reinitialized");
+            
+            // Finally items
+            itemService.reinitializeItems();
+            logger.info("Items reinitialized");
+            
+            return ResponseEntity.ok("All data reinitialized successfully");
+        } catch (Exception e) {
+            logger.error("Error reinitializing data: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                .body("Error reinitializing data: " + e.getMessage());
         }
     }
 }

@@ -65,6 +65,9 @@ public class Item {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     public double getPriceForSize(Size size) {
         if (size == null || !sizePrices.containsKey(size)) {
             return basePrice;
