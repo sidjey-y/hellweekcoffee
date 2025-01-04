@@ -41,6 +41,7 @@ import { useSnackbar } from 'notistack';
 import { Item, ItemType, ITEM_TYPES, Size } from '../types/item';
 import { Category } from '../types/category';
 import { itemsAPI, customizationAPI, categoriesAPI, customerAPI, transactionAPI } from '../services/api';
+import { axiosInstance } from '../utils/axios';
 
 interface CustomizationOption {
   id: number;
@@ -117,6 +118,9 @@ const POS = () => {
   const [isReceiptDialogOpen, setIsReceiptDialogOpen] = useState(false);
   const [membershipId, setMembershipId] = useState('');
   const [memberIdError, setMemberIdError] = useState('');
+  const [promoCode, setPromoCode] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -373,7 +377,10 @@ const POS = () => {
                 ${orderItemsHtml}
               </div>
               
-              <h3 style="text-align: right; margin: 10px 0;">Total Amount: ₱${calculateTotal().toFixed(2)}</h3>
+              <h3 style="text-align: right; margin: 10px 0;">Subtotal: ₱${calculateTotal().toFixed(2)}</h3>
+              ${discount > 0 ? `<h3 style="text-align: right; margin: 10px 0; color: #4caf50;">Discount: -₱${discount.toFixed(2)}</h3>` : ''}
+              <h3 style="text-align: right; margin: 10px 0;">Total Amount: ₱${calculateFinalTotal().toFixed(2)}</h3>
+              ${promoCode ? `<p style="text-align: right; color: #666;">Promo Code: ${promoCode}</p>` : ''}
               
               <div style="text-align: center; margin-top: 30px;">
                 <p style="margin: 5px 0;">Thank you for visiting Hell Week Coffee!</p>
@@ -708,6 +715,38 @@ const POS = () => {
       ...prev,
       memberId: event.target.value
     }));
+  };
+
+  const handleApplyPromoCode = async () => {
+    if (!promoCode.trim()) {
+      enqueueSnackbar('Please enter a promo code', { variant: 'warning' });
+      return;
+    }
+
+    setIsValidatingPromo(true);
+    try {
+      const response = await axiosInstance.post('/promos/validate', { code: promoCode });
+      if (response.data.valid) {
+        const discountPercent = response.data.discountPercent;
+        const discountAmount = (calculateTotal() * discountPercent) / 100;
+        setDiscount(discountAmount);
+        enqueueSnackbar(`Promo code applied! ${discountPercent}% discount`, { variant: 'success' });
+      } else {
+        setDiscount(0);
+        enqueueSnackbar(response.data.message || 'Invalid promo code', { variant: 'error' });
+      }
+    } catch (error: any) {
+      console.error('Error validating promo code:', error);
+      setDiscount(0);
+      enqueueSnackbar(error.response?.data?.message || 'Invalid promo code', { variant: 'error' });
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
+
+  const calculateFinalTotal = () => {
+    const subtotal = calculateTotal();
+    return subtotal - discount;
   };
 
   // Customer Information Dialog
@@ -1331,13 +1370,52 @@ const POS = () => {
               
               <Box sx={{ mt: 2 }}>
                 <Typography variant="h6" align="right">
-                  Total Amount: ₱{calculateTotal().toFixed(2)}
+                  Subtotal: ₱{calculateTotal().toFixed(2)}
+                </Typography>
+
+                {/* Add Promo Code Section */}
+                <Box sx={{ mt: 2, mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Have a promo code?
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <TextField
+                      size="small"
+                      placeholder="Enter promo code"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      disabled={isValidatingPromo}
+                      sx={{ flex: 1 }}
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={handleApplyPromoCode}
+                      disabled={isValidatingPromo || !promoCode.trim()}
+                      sx={{ minWidth: '100px' }}
+                    >
+                      {isValidatingPromo ? 'Validating...' : 'Apply'}
+                    </Button>
+                  </Box>
+                </Box>
+
+                {discount > 0 && (
+                  <Typography variant="h6" align="right" color="success.main">
+                    Discount: -₱{discount.toFixed(2)}
+                  </Typography>
+                )}
+
+                <Typography variant="h5" align="right" sx={{ mt: 1, fontWeight: 'bold' }}>
+                  Total Amount: ₱{calculateFinalTotal().toFixed(2)}
                 </Typography>
               </Box>
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setIsReceiptDialogOpen(false)}>Close</Button>
+            <Button onClick={() => {
+              setIsReceiptDialogOpen(false);
+              setPromoCode('');
+              setDiscount(0);
+            }}>Close</Button>
             <Button onClick={handlePrintReceipt} variant="contained" color="primary" startIcon={<ReceiptIcon />}>
               Print Receipt
             </Button>

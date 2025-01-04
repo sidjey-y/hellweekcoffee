@@ -15,6 +15,7 @@ com\hellweek\coffee\repository\CustomizationRepository.class
 com\hellweek\coffee\dto\CustomerAnalytics.class
 com\hellweek\coffee\dto\TransactionAnalytics$ItemSalesData.class
 com\hellweek\coffee\dto\CategoryRequest.class
+com\hellweek\coffee\repository\PromoCodeRepository.class
 com\hellweek\coffee\dto\CustomizationRequest.class
 com\hellweek\coffee\dto\TransactionAnalytics$CustomizationData.class
 com\hellweek\coffee\dto\TransactionRequest.class
@@ -22,6 +23,7 @@ com\hellweek\coffee\dto\ErrorResponse.class
 com\hellweek\coffee\dto\OrderItemRequest.class
 com\hellweek\coffee\model\CategoryType.class
 com\hellweek\coffee\model\ItemType.class
+com\hellweek\coffee\model\PromoCode.class
 com\hellweek\coffee\model\User$UserBuilder.class
 com\hellweek\coffee\dto\TransactionAnalytics.class
 com\hellweek\coffee\repository\ItemRepository.class
@@ -42,8 +44,10 @@ com\hellweek\coffee\service\TransactionAnalyticsService$ProductSalesData.class
 com\hellweek\coffee\controller\TransactionController.class
 com\hellweek\coffee\config\UserDetailsConfig.class
 com\hellweek\coffee\security\JwtAuthenticationFilter.class
+com\hellweek\coffee\service\PromoCodeService.class
 com\hellweek\coffee\service\UserService.class
 com\hellweek\coffee\dto\ReceiptResponse.class
+com\hellweek\coffee\controller\PromoCodeController.class
 com\hellweek\coffee\model\Category.class
 com\hellweek\coffee\model\CustomizationOption.class
 com\hellweek\coffee\model\User$Role.class

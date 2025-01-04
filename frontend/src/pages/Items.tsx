@@ -775,6 +775,11 @@ const Items = () => {
     );
   };
 
+  // Add the handleDeleteCustomization function
+  const handleDeleteCustomization = (index: number) => {
+    setCustomizationFormData(prev => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <>
       <AppBar position="static" color="default" elevation={1} sx={{ backgroundColor: '#4d351d' }}>
@@ -1125,49 +1130,69 @@ const Items = () => {
             Manage Customizations - {selectedItemForCustomization?.name}
           </DialogTitle>
           <DialogContent>
-            {customizationFormData.map((customization, index) => (
-              <Box key={index} sx={{ mb: 4, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
-                <TextField
-                  fullWidth
-                  label="Customization Name"
-                  value={customization.name}
-                  onChange={(e) => handleCustomizationChange(index, 'name', e.target.value)}
-                  margin="normal"
-                />
-                {customization.options.map((option, optionIndex) => (
-                  <Box key={optionIndex} sx={{ display: 'flex', gap: 2, mb: 1 }}>
+            {customizationFormData.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body1" color="text.secondary" gutterBottom>
+                  No customizations available.
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Click the button below to add a new customization.
+                </Typography>
+              </Box>
+            ) : (
+              customizationFormData.map((customization, index) => (
+                <Box key={index} sx={{ mb: 4, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <TextField
-                      label="Option Name"
-                      value={option.name}
-                      onChange={(e) => handleOptionChange(index, optionIndex, 'name', e.target.value)}
-                      sx={{ flex: 2 }}
-                    />
-                    <TextField
-                      label="Price"
-                      type="number"
-                      value={option.price}
-                      onChange={(e) => handleOptionChange(index, optionIndex, 'price', Number(e.target.value))}
-                      sx={{ flex: 1 }}
+                      fullWidth
+                      label="Customization Name"
+                      value={customization.name}
+                      onChange={(e) => handleCustomizationChange(index, 'name', e.target.value)}
+                      sx={{ mr: 2 }}
                     />
                     <IconButton 
                       color="error" 
-                      onClick={() => handleRemoveCustomizationOption(index, optionIndex)}
-                      disabled={customization.options.length <= 1}
+                      onClick={() => handleDeleteCustomization(index)}
+                      title="Delete Customization"
                     >
                       <DeleteIcon />
                     </IconButton>
                   </Box>
-                ))}
-                <Button
-                  variant="outlined"
-                  onClick={() => handleAddCustomizationOption(index)}
-                  disabled={customization.options.length >= 5}
-                  sx={{ mt: 1 }}
-                >
-                  Add Option
-                </Button>
-              </Box>
-            ))}
+                  {customization.options.map((option, optionIndex) => (
+                    <Box key={optionIndex} sx={{ display: 'flex', gap: 2, mb: 1 }}>
+                      <TextField
+                        label="Option Name"
+                        value={option.name}
+                        onChange={(e) => handleOptionChange(index, optionIndex, 'name', e.target.value)}
+                        sx={{ flex: 2 }}
+                      />
+                      <TextField
+                        label="Price"
+                        type="number"
+                        value={option.price}
+                        onChange={(e) => handleOptionChange(index, optionIndex, 'price', Number(e.target.value))}
+                        sx={{ flex: 1 }}
+                      />
+                      <IconButton 
+                        color="error" 
+                        onClick={() => handleRemoveCustomizationOption(index, optionIndex)}
+                        disabled={customization.options.length <= 1}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  ))}
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleAddCustomizationOption(index)}
+                    disabled={customization.options.length >= 5}
+                    sx={{ mt: 1 }}
+                  >
+                    Add Option
+                  </Button>
+                </Box>
+              ))
+            )}
             <Button
               variant="contained"
               onClick={handleAddNewCustomization}
