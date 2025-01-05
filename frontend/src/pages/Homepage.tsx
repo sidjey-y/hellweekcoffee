@@ -2,7 +2,6 @@ import React from 'react';
 import { Container, Typography, Box, Button, Paper, Grid, Card, CardContent, CardMedia, CardActionArea } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
-// Mock news data - in a real app, this would come from an API
 const newsItems = [
   {
     id: 1,

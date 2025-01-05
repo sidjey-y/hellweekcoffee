@@ -26,7 +26,7 @@ const CashierDashboard = () => {
   const navigate = useNavigate();
   const user = useSelector((state: any) => state.auth.user);
 
-  // Sample data - replace with actual data from your backend
+  // Sample data
   const pendingOrders = [
     {
       id: '1',

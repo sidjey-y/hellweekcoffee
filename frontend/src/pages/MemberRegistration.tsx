@@ -75,7 +75,7 @@ const MemberRegistration = () => {
       console.error('Member registration failed:', error);
       if (error.response) {
         // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
+        // outside the 200-299 range, meaning something went wrong on the server
         const errorMessage = error.response.data.message || 
                            error.response.data.error ||
                            'Registration failed. Please check your input.';
