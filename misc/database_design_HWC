@@ -1,0 +1,178 @@
+-- Role Enumeration
+CREATE TYPE user_role AS ENUM ('ADMIN', 'STAFF', 'CUSTOMER');
+CREATE TYPE item_type AS ENUM ('DRINKS', 'FOOD', 'ADD_ONS', 'MERCHANDISE');
+CREATE TYPE size_type AS ENUM ('SMALL', 'MEDIUM', 'LARGE');
+CREATE TYPE category_type AS ENUM ('FOOD', 'BEVERAGE', 'ADD_ON', 'MERCHANDISE');
+CREATE TYPE transaction_status AS ENUM ('PENDING', 'COMPLETED', 'CANCELLED');
+CREATE TYPE payment_method AS ENUM ('CASH', 'CREDIT_CARD', 'DEBIT_CARD', 'MOBILE_PAYMENT');
+
+-- Users and Authentication
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    role user_role NOT NULL,
+    active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP
+);
+
+CREATE TABLE customers (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL UNIQUE,
+    membership_id VARCHAR(20) UNIQUE,
+    points DECIMAL(10,2) DEFAULT 0.00,
+    phone_number VARCHAR(15),
+    address TEXT,
+    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Product Categories
+CREATE TABLE categories (
+    id BIGINT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    type category_type NOT NULL,
+    description TEXT,
+    active BOOLEAN DEFAULT true,
+    display_order INT
+);
+
+-- Products and Items
+CREATE TABLE items (
+    code VARCHAR(15) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    category_id BIGINT NOT NULL,
+    base_price DECIMAL(10,2) NOT NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    type item_type NOT NULL,
+    description TEXT,
+    active BOOLEAN DEFAULT true,
+    image_url VARCHAR(255),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+
+CREATE TABLE item_size_prices (
+    item_code VARCHAR(15),
+    size size_type NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    PRIMARY KEY (item_code, size),
+    FOREIGN KEY (item_code) REFERENCES items(code)
+);
+
+-- Customization System
+CREATE TABLE customizations (
+    id BIGINT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    description TEXT,
+    required BOOLEAN DEFAULT false,
+    max_choices INT DEFAULT 1,
+    active BOOLEAN DEFAULT true
+);
+
+CREATE TABLE customization_options (
+    id BIGINT PRIMARY KEY,
+    customization_id BIGINT NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    additional_cost DECIMAL(10,2) DEFAULT 0.00,
+    available BOOLEAN DEFAULT true,
+    FOREIGN KEY (customization_id) REFERENCES customizations(id)
+);
+
+CREATE TABLE item_customizations (
+    item_code VARCHAR(15),
+    customization_id BIGINT,
+    PRIMARY KEY (item_code, customization_id),
+    FOREIGN KEY (item_code) REFERENCES items(code),
+    FOREIGN KEY (customization_id) REFERENCES customizations(id)
+);
+
+-- Promotions
+CREATE TABLE promo_codes (
+    id BIGINT PRIMARY KEY,
+    code VARCHAR(20) UNIQUE NOT NULL,
+    description TEXT,
+    discount_amount DECIMAL(10,2) NOT NULL,
+    discount_type VARCHAR(20) NOT NULL,
+    valid_from TIMESTAMP NOT NULL,
+    valid_until TIMESTAMP NOT NULL,
+    active BOOLEAN DEFAULT true,
+    usage_limit INT,
+    times_used INT DEFAULT 0
+);
+
+-- Transactions and Orders
+CREATE TABLE transactions (
+    id BIGINT PRIMARY KEY,
+    customer_id BIGINT,
+    created_by BIGINT NOT NULL,
+    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    status transaction_status DEFAULT 'PENDING',
+    membership_id VARCHAR(20),
+    is_guest_order BOOLEAN DEFAULT false,
+    payment_method payment_method,
+    promo_code_id BIGINT,
+    notes TEXT,
+    FOREIGN KEY (customer_id) REFERENCES customers(id),
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (promo_code_id) REFERENCES promo_codes(id)
+);
+
+CREATE TABLE transaction_items (
+    id BIGINT PRIMARY KEY,
+    transaction_id BIGINT NOT NULL,
+    item_code VARCHAR(15) NOT NULL,
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    size size_type,
+    notes TEXT,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id),
+    FOREIGN KEY (item_code) REFERENCES items(code)
+);
+
+CREATE TABLE transaction_item_customizations (
+    id BIGINT PRIMARY KEY,
+    transaction_item_id BIGINT NOT NULL,
+    customization_id BIGINT NOT NULL,
+    customization_option_id BIGINT NOT NULL,
+    additional_cost DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    FOREIGN KEY (transaction_item_id) REFERENCES transaction_items(id),
+    FOREIGN KEY (customization_id) REFERENCES customizations(id),
+    FOREIGN KEY (customization_option_id) REFERENCES customization_options(id)
+);
+
+-- Constraints
+ALTER TABLE items
+ADD CONSTRAINT chk_base_price CHECK (base_price >= 0),
+ADD CONSTRAINT chk_quantity CHECK (quantity >= 0);
+
+ALTER TABLE item_size_prices
+ADD CONSTRAINT chk_size_price CHECK (price >= 0);
+
+ALTER TABLE customization_options
+ADD CONSTRAINT chk_additional_cost CHECK (additional_cost >= 0);
+
+ALTER TABLE transactions
+ADD CONSTRAINT chk_total_amount CHECK (total_amount >= 0);
+
+ALTER TABLE transaction_items
+ADD CONSTRAINT chk_quantity_positive CHECK (quantity > 0),
+ADD CONSTRAINT chk_unit_price CHECK (unit_price >= 0),
+ADD CONSTRAINT chk_total_price CHECK (total_price >= 0);
+
+ALTER TABLE transaction_item_customizations
+ADD CONSTRAINT chk_customization_cost CHECK (additional_cost >= 0);
+
+-- Indexes for Performance
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_customers_membership ON customers(membership_id);
+CREATE INDEX idx_items_category ON items(category_id);
+CREATE INDEX idx_items_type ON items(type);
+CREATE INDEX idx_transactions_customer ON transactions(customer_id);
+CREATE INDEX idx_transactions_date ON transactions(transaction_date);
+CREATE INDEX idx_transaction_items_transaction ON transaction_items(transaction_id);
+CREATE INDEX idx_transaction_items_item ON transaction_items(item_code);
